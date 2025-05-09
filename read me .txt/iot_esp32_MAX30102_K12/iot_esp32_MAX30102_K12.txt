@@ -1,0 +1,143 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <Wire.h>
+#include "MAX30105.h"
+#include "spo2_algorithm.h"
+#include <LiquidCrystal.h> // Include the LCD library
+
+// WiFi Credentials
+const char* ssid = "TRISHANK";
+const char* password = "7075356362";
+const char* serverUrl = "http://192.168.137.218/medconnect/save_data.php"; // Update IP if needed
+
+// LCD Connections (as per your table)
+const int rs = 21, en = 22, d4 = 16, d5 = 17, d6 = 18, d7 = 19;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7); // Initialize the LCD object
+
+// Sensor Objects
+MAX30105 particleSensor;
+
+// MAX30102 Variables
+#define MAX_BRIGHTNESS 255
+uint32_t irBuffer[100];
+uint32_t redBuffer[100];
+int32_t spo2;
+int8_t validSPO2;
+int32_t heartRate;
+int8_t validHeartRate;
+
+// KY-013 Thermistor Variables
+const int thermistorPin = 34; // GPIO34 (Analog Input)
+float temperatureC;
+
+void setup() {
+    Serial.begin(115200);
+    Wire.begin(21, 22); // I2C for MAX30102
+
+    // Initialize LCD (16 columns, 2 rows)
+    lcd.begin(16, 2);
+    lcd.print("Initializing...");
+
+    // Connect to WiFi
+    WiFi.begin(ssid, password);
+    Serial.print("Connecting to WiFi...");
+    lcd.setCursor(0, 1);
+    lcd.print("WiFi...");
+    
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println("Connected!");
+    lcd.clear();
+    lcd.print("WiFi Connected!");
+    delay(1000);
+
+    // Initialize MAX30102
+    lcd.clear();
+    lcd.print("Init MAX30102...");
+    if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) {
+        Serial.println("MAX30102 not found. Check wiring!");
+        lcd.clear();
+        lcd.print("MAX30102 Error!");
+        while (1);
+    }
+    particleSensor.setup();
+    particleSensor.setPulseAmplitudeRed(0x1F);
+    particleSensor.setPulseAmplitudeIR(0x1F);
+
+    // Configure thermistor pin
+    analogReadResolution(12); // ESP32 default (0-4095)
+
+    lcd.clear();
+    lcd.print("System Ready");
+    delay(1000);
+}
+
+void loop() {
+    // Read MAX30102 (BPM/SpO2)
+    for (byte i = 0; i < 100; i++) {
+        while (!particleSensor.available()) {
+            particleSensor.check();
+        }
+        redBuffer[i] = particleSensor.getRed();
+        irBuffer[i] = particleSensor.getIR();
+        particleSensor.nextSample();
+    }
+    maxim_heart_rate_and_oxygen_saturation(irBuffer, 100, redBuffer, &spo2, &validSPO2, &heartRate, &validHeartRate);
+
+    // Read KY-013 Thermistor (Temperature)
+    temperatureC = readThermistor(thermistorPin);
+
+    // Print all sensor data to Serial
+    Serial.print("BPM="); Serial.print(heartRate);
+    Serial.print(", SpO2="); Serial.print(spo2);
+    Serial.print("%, Temp="); Serial.print(temperatureC); Serial.println("°C");
+
+    // Display on LCD
+    lcd.clear();
+    lcd.print("BPM:"); lcd.print(heartRate);
+    lcd.print(" SpO2:"); lcd.print(spo2); lcd.print("%");
+    
+    lcd.setCursor(0, 1); // Move to second line
+    lcd.print("Temp:"); lcd.print(temperatureC, 1); lcd.print("C");
+
+    // Send data to server if valid
+    if (WiFi.status() == WL_CONNECTED && validHeartRate && validSPO2) {
+        sendToServer(heartRate, spo2, temperatureC);
+    } else {
+        Serial.println("Skipping upload: Invalid data or WiFi disconnected.");
+    }
+
+    delay(5000); // Wait 5 seconds
+}
+
+// Read temperature from KY-013 thermistor
+float readThermistor(int pin) {
+    int rawValue = analogRead(pin);
+    float voltage = rawValue * (3.3 / 4095.0); // Convert to voltage (ESP32 ADC)
+    float resistance = (3.3 - voltage) / (voltage / 10000.0); // 10KΩ resistor in KY-013
+    float tempK = 1 / (1 / (273.15 + 25) + log(resistance / 10000.0) / 3950.0); // Steinhart-Hart equation
+    return tempK - 263.15; // Convert Kelvin to Celsius
+}
+
+// Send data to XAMPP server
+void sendToServer(int32_t bpm, int32_t spo2, float temp) {
+    HTTPClient http;
+    String url = String(serverUrl) + 
+                 "?heart_rate=" + String(bpm) + 
+                 "&spo2=" + String(spo2) + 
+                 "&temperature=" + String(temp, 1); // 1 decimal place
+    
+    Serial.print("Sending: "); Serial.println(url);
+    http.begin(url);
+    http.setTimeout(5000);
+
+    int httpResponseCode = http.GET();
+    if (httpResponseCode > 0) {
+        Serial.print("Server Response: "); Serial.println(http.getString());
+    } else {
+        Serial.print("HTTP Error: "); Serial.println(http.errorToString(httpResponseCode));
+    }
+    http.end();
+}

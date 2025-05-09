@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Patient Login - MedConnect</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="login-page">
+
+  <div class="login-container">
+    <h2>👤 Patient Login</h2>
+    <form action="patient/login_patient.php" method="POST">
+      <input type="text" placeholder="Username" name="username" required />
+      <input type="password" placeholder="Password" name="password" required />
+      <button type="submit" class="btn login-btn">Login</button>
+      <p class="switch-link">Not registered? <a href="patient-register.html">Register here</a></p>
+    </form>
+  </div>
+
+</body>
+</html>
