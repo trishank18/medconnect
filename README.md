@@ -1,0 +1,7 @@
+#medconnect
+#iot device
+save the project folder in XAMPP foldet in htdocs
+start apache and sql in XAMPP server
+now go to admin and execute sql queries
+save all and go to any browser and type 
+"http://localhost/medconnect/"
