@@ -28,7 +28,8 @@ try {
         2 => ['pipe', 'w']
     ];
     $script = __DIR__ . DIRECTORY_SEPARATOR . 'ml' . DIRECTORY_SEPARATOR . 'predict_health.py';
-    $command = 'py ' . escapeshellarg($script);
+    $python = getenv('PYTHON_BIN') ?: 'python3';
+    $command = escapeshellarg($python) . ' ' . escapeshellarg($script);
     $process = proc_open($command, $descriptors, $pipes, __DIR__);
 
     if (!is_resource($process)) {

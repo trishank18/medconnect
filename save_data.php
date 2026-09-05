@@ -1,27 +1,33 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "medconnect";
+$servername = getenv('DB_HOST') ?: 'localhost';
+$port = getenv('DB_PORT') ?: '3306';
+$username = getenv('DB_USER') ?: 'root';
+$password = getenv('DB_PASSWORD') ?: '';
+$dbname = getenv('DB_NAME') ?: 'medconnect';
 
-$conn = new mysqli($servername, $username, $password, $dbname);
+$conn = new mysqli($servername, $username, $password, $dbname, (int) $port);
 
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$heart_rate = $_GET['heart_rate'];
-$spo2 = $_GET['spo2'];
-$temperature = $_GET['temperature'];
-$patient_id = 4; // Replace with dynamic ID if needed
+$heart_rate = filter_input(INPUT_GET, 'heart_rate', FILTER_VALIDATE_INT);
+$spo2 = filter_input(INPUT_GET, 'spo2', FILTER_VALIDATE_INT);
+$temperature = filter_input(INPUT_GET, 'temperature', FILTER_VALIDATE_FLOAT);
+$patient_id = filter_input(INPUT_GET, 'patient_id', FILTER_VALIDATE_INT)
+    ?: (int) (getenv('DEFAULT_PATIENT_ID') ?: 4);
 
-$sql = "INSERT INTO health_metrics (patient_id, heart_rate, spo2, temperature)
-        VALUES ($patient_id, $heart_rate, $spo2, $temperature)";
+$stmt = $conn->prepare(
+    'INSERT INTO health_metrics (patient_id, heart_rate, spo2, temperature)
+     VALUES (?, ?, ?, ?)'
+);
+$stmt->bind_param('iidd', $patient_id, $heart_rate, $spo2, $temperature);
 
-if ($conn->query($sql) === TRUE) {
+if ($stmt->execute()) {
     echo "Data saved successfully.";
 } else {
-    echo "Error: " . $conn->error;
+    echo "Error: " . $stmt->error;
 }
+$stmt->close();
 $conn->close();
 ?>

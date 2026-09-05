@@ -67,6 +67,24 @@ py -m pip install -r requirements.txt
 
 The PHP bridge calls `ml/predict_health.py` with the patient's readings. If Python, scikit-learn, or enough complete readings are unavailable, the dashboard displays an explanatory status instead of blocking the rest of the application.
 
+## Online deployment
+
+The repository includes a `Dockerfile` for a PHP, MySQL-client, and Python deployment. Use a cloud host that supports Docker and connect it to a MySQL database. Import the schema from `read me .txt/sql.txt` before opening the application.
+
+Set these environment variables in the cloud service. Do not commit their values:
+
+```text
+DB_HOST=your-mysql-host
+DB_PORT=3306
+DB_NAME=medconnect
+DB_USER=your-mysql-user
+DB_PASSWORD=your-mysql-password
+PYTHON_BIN=python3
+DEFAULT_PATIENT_ID=4
+```
+
+After deployment, update `serverUrl` in both ESP32 instruction files to the public HTTPS URL ending in `/save_data.php`, then replace `YOUR_WIFI_PASSWORD` locally before uploading the sketch to the ESP32. Keep that real Wi-Fi password out of Git.
+
 ---
 
 ## 📁 Project Structure
