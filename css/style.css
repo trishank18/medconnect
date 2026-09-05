@@ -47,6 +47,22 @@
 .admin-page .btn-secondary { border-color: rgba(255, 156, 169, .55); background: transparent; color: #ffb0ba; }
 .empty-state { padding: 36px 24px; text-align: center; }
 .form-note { margin: -8px 0 20px; opacity: .75; }
+.admin-login-page { background: #06151e; color: #d9eef0; }
+.admin-login-page::before { background-image: linear-gradient(rgba(69, 211, 218, .045) 1px, transparent 1px), linear-gradient(90deg, rgba(69, 211, 218, .045) 1px, transparent 1px); background-size: 42px 42px; opacity: .55; }
+.admin-login-page .auth-layout { border-color: rgba(91, 227, 232, .3); background: rgba(7, 27, 37, .92); box-shadow: 0 22px 70px rgba(0, 0, 0, .36), 0 0 28px rgba(91, 227, 232, .08); }
+.admin-login-page .auth-visual { background: #0b2a36; min-height: 520px; }
+.admin-login-page .auth-visual::after { background: linear-gradient(180deg, rgba(6, 21, 30, .08), rgba(6, 21, 30, .86)); }
+.admin-login-page .auth-mark { background: #34d5dc; color: #06151e; }
+.admin-login-page .auth-visual .eyebrow { color: #71eef0; }
+.admin-login-page .login-container { background: transparent; color: #d9eef0; }
+.admin-login-page .login-container h2 { color: #efffff; }
+.admin-login-page .form-note { color: #9fc1c7; }
+.admin-login-page .login-container input { border-color: rgba(91, 227, 232, .22); background: rgba(11, 37, 48, .78); color: #efffff; }
+.admin-login-page .login-container input:focus { border-color: #5be3e8; box-shadow: 0 0 0 3px rgba(91, 227, 232, .12); }
+.admin-login-page .login-container input::placeholder { color: #78a3ab; }
+.admin-login-page .login-btn { border: 1px solid #5be3e8; background: #159da5; box-shadow: 0 0 18px rgba(91, 227, 232, .2); }
+.admin-login-page .switch-link, .admin-login-page .switch-link a { color: #9fc1c7; }
+.admin-login-page .switch-link a:hover { color: #71eef0; }
 @media (max-width: 700px) { .admin-hero img { height: 190px; } .admin-hero-copy { left: 22px; } .admin-metrics { grid-template-columns: 1fr; } .doctor-review-row { align-items: flex-start; flex-direction: column; } .doctor-review-actions { justify-content: flex-start; min-width: 0; } }
 * {
   margin: 0;
@@ -1903,3 +1919,17 @@ body.login-page .login-container { border: 0; border-radius: 0; box-shadow: none
   .auth-mark { margin-bottom: 34px; }
   body.login-page .login-container { padding: 34px 26px 38px; }
 }
+
+/* Keep the administrator login aligned with the dark control-room theme. */
+body.login-page.admin-login-page { background: #06151e; color: #d9eef0; }
+body.login-page.admin-login-page::before { background-image: linear-gradient(rgba(69, 211, 218, .045) 1px, transparent 1px), linear-gradient(90deg, rgba(69, 211, 218, .045) 1px, transparent 1px); background-size: 42px 42px; opacity: .55; }
+body.login-page.admin-login-page .auth-layout { border-color: rgba(91, 227, 232, .3); background: rgba(7, 27, 37, .92); box-shadow: 0 22px 70px rgba(0, 0, 0, .36), 0 0 28px rgba(91, 227, 232, .08); }
+body.login-page.admin-login-page .login-container { background: transparent; color: #d9eef0; }
+body.login-page.admin-login-page .login-container h2 { color: #efffff; }
+body.login-page.admin-login-page .form-note { color: #9fc1c7; }
+body.login-page.admin-login-page .login-container input { border-color: rgba(91, 227, 232, .22); background: rgba(11, 37, 48, .78); color: #efffff; }
+body.login-page.admin-login-page .login-container input:focus { border-color: #5be3e8; box-shadow: 0 0 0 3px rgba(91, 227, 232, .12); }
+body.login-page.admin-login-page .login-container input::placeholder { color: #78a3ab; }
+body.login-page.admin-login-page .login-btn { border: 1px solid #5be3e8; background: #159da5; box-shadow: 0 0 18px rgba(91, 227, 232, .2); }
+body.login-page.admin-login-page .switch-link, body.login-page.admin-login-page .switch-link a { color: #9fc1c7; }
+body.login-page.admin-login-page .switch-link a:hover { color: #71eef0; }
