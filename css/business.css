@@ -15,6 +15,79 @@
 .patient-chart-container {
   height: 300px;
 }
+.patient-trends-view .modal-body {
+  max-height: calc(100vh - 170px);
+  overflow-y: auto;
+}
+.patient-trends-view {
+  z-index: 1060 !important;
+}
+.patient-trends-view .modal-content {
+  position: relative;
+  z-index: 1;
+}
+.patient-trends-modal .modal-body {
+  flex: 1 1 auto;
+  height: 0;
+  min-height: 0;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+.patient-trends-modal {
+  background: var(--biz-canvas);
+}
+.patient-trends-modal .modal-dialog {
+  height: 100%;
+  margin: 0;
+  max-width: none;
+  width: 100%;
+}
+.patient-trends-modal .modal-content {
+  height: 100%;
+}
+.patient-trends-nav {
+  align-items: center;
+  background: var(--biz-surface);
+  border-bottom: 1px solid var(--biz-line);
+  display: flex;
+  gap: 6px;
+  margin: 0 -16px 20px;
+  overflow-x: auto;
+  padding: 10px 16px;
+  position: sticky;
+  top: -1px;
+  z-index: 3;
+}
+.patient-trends-nav a {
+  border: 1px solid var(--biz-line);
+  border-radius: 5px;
+  color: var(--biz-navy);
+  flex: 0 0 auto;
+  font-size: .82rem;
+  font-weight: 600;
+  padding: 7px 10px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.patient-trends-nav a:hover,
+.patient-trends-nav a:focus-visible {
+  background: var(--biz-navy);
+  color: #fff;
+}
+.patient-trends-modal #trend-heart-rate,
+.patient-trends-modal #trend-spo2,
+.patient-trends-modal #trend-temperature,
+.patient-trends-modal #trend-pressure,
+.patient-trends-modal #trend-history {
+  scroll-margin-top: 64px;
+}
+@media (max-width: 767px) {
+  .patient-chart-container { height: 240px; }
+}
 
 html, body { min-height: 100%; }
 body.bg-light {
@@ -40,6 +113,7 @@ body.bg-light::before {
 }
 
 body.bg-light > .container { z-index: 1; }
+body.bg-light > .container:has(#healthTrendsModal) { z-index: auto; }
 
 .patient-dashboard-header {
   align-items: center;

@@ -82,12 +82,11 @@ try {
         $pressureTone = 'metric-neutral';
     }
 
-    // Fetch the same recent history used by the doctor trends view.
+    // Fetch the complete history so the patient can review every recorded reading.
     $history_stmt = $conn->prepare("
         SELECT heart_rate, spo2, temperature, blood_pressure_sys, blood_pressure_dia, recorded_at
         FROM health_metrics
         WHERE patient_id = :patient_id
-        AND recorded_at >= DATE_SUB(NOW(), INTERVAL 10 DAY)
         ORDER BY recorded_at DESC
     ");
     $history_stmt->bindParam(':patient_id', $_SESSION['patient_id']);
@@ -258,18 +257,17 @@ try {
     </div>
 
         <!-- Health Trends Modal -->
-        <div class="modal fade patient-trends-modal" id="healthTrendsModal" tabindex="-1" aria-labelledby="healthTrendsTitle" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal fade patient-trends-view" id="healthTrendsModal" tabindex="-1" aria-labelledby="healthTrendsTitle" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
                 <div class="modal-content">
                     <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title" id="healthTrendsTitle"><i class="bi bi-graph-up"></i> Health Trends</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                         <div class="modal-body">
-                    <p class="text-muted small"><i class="bi bi-shield-check"></i> This is the same recent health history available to your care team.</p>
-            <?php if (empty($metrics_history)): ?>
-                <div class="alert alert-info mb-0">No health data available for the last 10 days.</div>
-            <?php else: ?>
+                    <p class="text-muted small"><i class="bi bi-shield-check"></i> Review your complete recorded health history.</p>
+                <div id="noDataMessage" class="alert alert-info d-none">No health data available.</div>
+                <div id="chartsContainer">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="card mb-4">
@@ -297,24 +295,16 @@ try {
                     </div>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover mb-0">
+                    <table class="table table-bordered table-hover">
                         <thead class="table-light">
                             <tr><th>Date/Time</th><th>Heart Rate</th><th>SpO₂</th><th>Temperature</th><th>Blood Pressure</th></tr>
                         </thead>
-                        <tbody>
-                            <?php foreach (array_reverse($metrics_history) as $record): ?>
-                                <tr>
-                                    <td><?= date('M j, Y H:i', strtotime($record['recorded_at'])) ?></td>
-                                    <td><?= $record['heart_rate'] ?? 'N/A' ?></td>
-                                    <td><?= $record['spo2'] ?? 'N/A' ?></td>
-                                    <td><?= $record['temperature'] ?? 'N/A' ?></td>
-                                    <td><?= isset($record['blood_pressure_sys'], $record['blood_pressure_dia']) ? "{$record['blood_pressure_sys']}/{$record['blood_pressure_dia']}" : 'N/A' ?></td>
-                                </tr>
-                            <?php endforeach; ?>
+                        <tbody id="healthMetricsTableBody">
+                            <!-- Data inserted when the modal opens -->
                         </tbody>
                     </table>
                 </div>
-            <?php endif; ?>
+                </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -544,13 +534,15 @@ departmentSelect.addEventListener('change', function () {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    const labels = <?= json_encode($chart_labels) ?>;
-    let trendCharts = [];
+    const healthHistory = <?= json_encode($metrics_history, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+    const trendChartInstances = {};
 
-    function createTrendChart(canvasId, label, data, color) {
+    function createChart(canvasId, label, labels, data, color) {
         const canvas = document.getElementById(canvasId);
-        if (!canvas) return null;
-        return new Chart(canvas, {
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (trendChartInstances[canvasId]) trendChartInstances[canvasId].destroy();
+
+        trendChartInstances[canvasId] = new Chart(canvas, {
             type: 'line',
             data: {
                 labels: labels,
@@ -566,41 +558,106 @@ document.addEventListener('DOMContentLoaded', function() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { y: { beginAtZero: false } }
+                scales: {
+                    x: {
+                        ticks: {
+                            autoSkip: true,
+                            maxTicksLimit: 8,
+                            maxRotation: 45,
+                            minRotation: 0
+                        }
+                    },
+                    y: { beginAtZero: false }
+                }
             }
         });
     }
 
-    function renderTrendCharts() {
-        if (trendCharts.length || !document.getElementById('heartRateChart')) return;
-        if (typeof Chart === 'undefined') {
-            document.querySelector('#healthTrendsModal .modal-body').innerHTML = '<div class="alert alert-warning mb-0">Trend charts are temporarily unavailable. Please check your connection and try again.</div>';
-            return;
-        }
+    function createBPChart(labels, systolicData, diastolicData) {
+        const canvas = document.getElementById('bpChart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (trendChartInstances.bloodPressure) trendChartInstances.bloodPressure.destroy();
 
-        trendCharts = [
-            createTrendChart('heartRateChart', 'Heart Rate', <?= json_encode($heart_rate_data) ?>, '#dc3545'),
-            createTrendChart('spo2Chart', 'SpO₂', <?= json_encode($spo2_data) ?>, '#17a2b8'),
-            createTrendChart('tempChart', 'Temperature', <?= json_encode($temperature_data) ?>, '#ffc107'),
-            new Chart(document.getElementById('bpChart'), {
+        trendChartInstances.bloodPressure = new Chart(canvas, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'Systolic', data: <?= json_encode($blood_pressure_sys_data) ?>, borderColor: '#6c757d', backgroundColor: '#6c757d33', tension: 0.3 },
-                    { label: 'Diastolic', data: <?= json_encode($blood_pressure_dia_data) ?>, borderColor: '#495057', backgroundColor: '#49505733', tension: 0.3 }
+                    { label: 'Systolic', data: systolicData, borderColor: '#6c757d', backgroundColor: '#6c757d33', tension: 0.3 },
+                    { label: 'Diastolic', data: diastolicData, borderColor: '#495057', backgroundColor: '#49505733', tension: 0.3 }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: { y: { beginAtZero: false } }
+                scales: {
+                    x: {
+                        ticks: {
+                            autoSkip: true,
+                            maxTicksLimit: 8,
+                            maxRotation: 45,
+                            minRotation: 0
+                        }
+                    },
+                    y: { beginAtZero: false }
+                }
             }
-            })
-        ];
+        });
     }
 
-    document.getElementById('healthTrendsModal')?.addEventListener('shown.bs.modal', renderTrendCharts);
+    document.getElementById('healthTrendsModal')?.addEventListener('shown.bs.modal', function () {
+        const noDataMessage = document.getElementById('noDataMessage');
+        const chartsContainer = document.getElementById('chartsContainer');
+        const tableBody = document.getElementById('healthMetricsTableBody');
+
+        if (!healthHistory.length) {
+            noDataMessage.classList.remove('d-none');
+            chartsContainer.classList.add('d-none');
+            return;
+        }
+
+        noDataMessage.classList.add('d-none');
+        chartsContainer.classList.remove('d-none');
+
+        const labels = healthHistory.map(entry => new Date(entry.recorded_at).toLocaleString());
+        const heartRates = healthHistory.map(entry => entry.heart_rate || null);
+        const spo2Values = healthHistory.map(entry => entry.spo2 || null);
+        const temperatures = healthHistory.map(entry => entry.temperature || null);
+        const systolicValues = healthHistory.map(entry => entry.blood_pressure_sys || null);
+        const diastolicValues = healthHistory.map(entry => entry.blood_pressure_dia || null);
+
+        tableBody.innerHTML = '';
+        healthHistory.forEach(function (entry) {
+            const row = document.createElement('tr');
+            const values = [
+                new Date(entry.recorded_at).toLocaleString(),
+                entry.heart_rate || 'N/A',
+                entry.spo2 || 'N/A',
+                entry.temperature || 'N/A',
+                entry.blood_pressure_sys && entry.blood_pressure_dia
+                    ? `${entry.blood_pressure_sys}/${entry.blood_pressure_dia}`
+                    : 'N/A'
+            ];
+            values.forEach(function (value) {
+                const cell = document.createElement('td');
+                cell.textContent = value;
+                row.appendChild(cell);
+            });
+            tableBody.appendChild(row);
+        });
+
+        if (typeof Chart === 'undefined') {
+            noDataMessage.textContent = 'Trend charts are temporarily unavailable. Please check your connection and try again.';
+            noDataMessage.classList.remove('d-none');
+            return;
+        }
+
+        createChart('heartRateChart', 'Heart Rate', labels, heartRates, '#dc3545');
+        createChart('spo2Chart', 'SpO₂', labels, spo2Values, '#17a2b8');
+        createChart('tempChart', 'Temperature', labels, temperatures, '#ffc107');
+        createBPChart(labels, systolicValues, diastolicValues);
+    });
+
 });
 </script>
     <script src="js/design-switch.js"></script>
