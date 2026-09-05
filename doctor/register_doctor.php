@@ -10,8 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
     try {
-        $stmt = $conn->prepare("INSERT INTO doctors (fullname, email, phone, department, username, password) 
-                               VALUES (:fullname, :email, :phone, :department, :username, :password)");
+        $stmt = $conn->prepare("INSERT INTO doctors (fullname, email, phone, department, username, password, verification_status)
+                       VALUES (:fullname, :email, :phone, :department, :username, :password, 'pending')");
         $stmt->bindParam(':fullname', $fullname);
         $stmt->bindParam(':email', $email);
         $stmt->bindParam(':phone', $phone);

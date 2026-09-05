@@ -83,6 +83,19 @@ PYTHON_BIN=python3
 DEFAULT_PATIENT_ID=4
 ```
 
+## Administrator doctor verification
+
+Import the updated schema from `read me .txt/sql.txt`. For an existing database, run `read me .txt/migrate-verification.sql` once. New doctor registrations remain pending until an administrator approves them.
+
+Configure the admin login with environment variables. Generate a password hash with `C:\xampp\php\php.exe -r "echo password_hash('your-password', PASSWORD_DEFAULT), PHP_EOL;"` and store the output as `ADMIN_PASSWORD_HASH`:
+
+```text
+ADMIN_USERNAME=your-admin-username
+ADMIN_PASSWORD_HASH=your-generated-password-hash
+```
+
+Open `/admin-login.html` to review pending doctors and approve or reject them. Keep both admin values private.
+
 After deployment, update `serverUrl` in both ESP32 instruction files to the public HTTPS URL ending in `/save_data.php`, then replace `YOUR_WIFI_PASSWORD` locally before uploading the sketch to the ESP32. Keep that real Wi-Fi password out of Git.
 
 ---

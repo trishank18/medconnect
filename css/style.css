@@ -1,3 +1,28 @@
+/* Admin verification workspace */
+.admin-shell { max-width: 1180px; margin: 0 auto; padding: 48px 24px 72px; }
+.admin-shell .page-heading { margin-bottom: 28px; }
+.admin-shell h1 { margin-bottom: 8px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 5%; border-bottom: 1px solid rgba(20, 36, 58, .12); background: #fff; }
+.topbar nav a { color: inherit; font-weight: 700; text-decoration: none; }
+.admin-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
+.admin-tab { padding: 10px 16px; border: 1px solid rgba(20, 36, 58, .15); border-radius: 6px; color: inherit; text-decoration: none; background: #fff; }
+.admin-tab.active { border-color: #0066ff; background: #0066ff; color: #fff; }
+.admin-tab strong { margin-left: 6px; }
+.admin-table-wrap { overflow: hidden; border: 1px solid rgba(20, 36, 58, .12); border-radius: 8px; background: #fff; }
+.doctor-review-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 24px; border-bottom: 1px solid rgba(20, 36, 58, .1); }
+.doctor-review-row:last-child { border-bottom: 0; }
+.doctor-review-info h2 { margin: 0 0 6px; font-size: 1.1rem; }
+.doctor-review-info p { margin: 3px 0; }
+.doctor-review-info small { display: block; margin-top: 8px; opacity: .7; }
+.doctor-review-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; min-width: 260px; }
+.doctor-review-actions form { margin: 0; }
+.status-badge { display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; }
+.status-pending { background: #fff3cd; color: #765500; }
+.status-approved { background: #d8f3e5; color: #11643a; }
+.status-rejected { background: #fde2e2; color: #922b2b; }
+.empty-state { padding: 36px 24px; text-align: center; }
+.form-note { margin: -8px 0 20px; opacity: .75; }
+@media (max-width: 700px) { .doctor-review-row { align-items: flex-start; flex-direction: column; } .doctor-review-actions { justify-content: flex-start; min-width: 0; } }
 * {
   margin: 0;
   padding: 0;

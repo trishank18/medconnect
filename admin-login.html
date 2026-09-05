@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="MedConnect administrator login" />
+  <title>Admin Login - MedConnect</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="login-page">
+  <div class="auth-layout">
+    <aside class="auth-visual"><span class="auth-mark" aria-hidden="true">&#9881;</span><p class="eyebrow">Operations workspace</p><h1>Verify every clinician before care begins.</h1></aside>
+    <div class="login-container">
+      <h2>Administrator Login</h2>
+      <p class="form-note">Use the administrator credentials configured on the server.</p>
+      <form action="admin-login.php" method="POST">
+        <input type="text" placeholder="Admin username" name="username" required autocomplete="username" />
+        <input type="password" placeholder="Admin password" name="password" required autocomplete="current-password" />
+        <button type="submit" class="btn login-btn">Sign in</button>
+      </form>
+      <p class="switch-link"><a href="index.html">Return to MedConnect</a></p>
+    </div>
+  </div>
+  <script src="js/design-switch.js"></script>
+</body>
+</html>

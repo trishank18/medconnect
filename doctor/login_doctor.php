@@ -14,10 +14,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($stmt->rowCount() == 1) {
             $doctor = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if (password_verify($password, $doctor['password'])) {
+            if (password_verify($password, $doctor['password']) && $doctor['verification_status'] === 'approved') {
                 $_SESSION['doctor_id'] = $doctor['id'];
                 $_SESSION['doctor_name'] = $doctor['fullname'];
                 header("Location: ../doctor-dashboard.php");
+                exit();
+            } elseif ($doctor['verification_status'] === 'pending') {
+                header("Location: ../doctor-login.html?error=pending_verification");
+                exit();
+            } elseif ($doctor['verification_status'] === 'rejected') {
+                header("Location: ../doctor-login.html?error=verification_rejected");
                 exit();
             } else {
                 header("Location: ../doctor-login.html?error=invalid_credentials");
