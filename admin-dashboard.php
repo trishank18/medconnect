@@ -24,6 +24,7 @@ $stmt = $conn->prepare($query);
 $stmt->execute($params);
 $doctors = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $counts = $conn->query('SELECT verification_status, COUNT(*) AS total FROM doctors GROUP BY verification_status')->fetchAll(PDO::FETCH_KEY_PAIR);
+$patientCount = (int) $conn->query('SELECT COUNT(*) FROM patients')->fetchColumn();
 function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
 ?>
 <!DOCTYPE html>
@@ -51,6 +52,7 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
       <div class="admin-metric"><span>Pending review</span><strong><?= (int) ($counts['pending'] ?? 0) ?></strong><small>Needs attention</small></div>
       <div class="admin-metric"><span>Approved doctors</span><strong><?= (int) ($counts['approved'] ?? 0) ?></strong><small>Active access</small></div>
       <div class="admin-metric"><span>Rejected doctors</span><strong><?= (int) ($counts['rejected'] ?? 0) ?></strong><small>Not approved</small></div>
+      <div class="admin-metric"><span>Total patients</span><strong><?= $patientCount ?></strong><small>Registered accounts</small></div>
     </section>
     <div class="admin-tabs">
       <?php foreach (['pending', 'approved', 'rejected', 'all'] as $tab): ?>

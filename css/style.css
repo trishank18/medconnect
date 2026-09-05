@@ -18,7 +18,7 @@
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 5%; border-bottom: 1px solid rgba(20, 36, 58, .12); background: #fff; }
 .topbar nav a { color: inherit; font-weight: 700; text-decoration: none; }
 .admin-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
-.admin-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
+.admin-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
 .admin-metric { position: relative; overflow: hidden; padding: 18px 20px; border: 1px solid rgba(91, 227, 232, .18); border-radius: 8px; background: rgba(11, 37, 48, .76); }
 .admin-metric::after { position: absolute; right: -18px; bottom: -32px; width: 90px; height: 90px; border: 1px solid rgba(91, 227, 232, .2); border-radius: 50%; content: ''; }
 .admin-metric span, .admin-metric small { display: block; color: #9fc1c7; }
@@ -63,6 +63,7 @@
 .admin-login-page .login-btn { border: 1px solid #5be3e8; background: #159da5; box-shadow: 0 0 18px rgba(91, 227, 232, .2); }
 .admin-login-page .switch-link, .admin-login-page .switch-link a { color: #9fc1c7; }
 .admin-login-page .switch-link a:hover { color: #71eef0; }
+@media (max-width: 900px) { .admin-metrics { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 700px) { .admin-hero img { height: 190px; } .admin-hero-copy { left: 22px; } .admin-metrics { grid-template-columns: 1fr; } .doctor-review-row { align-items: flex-start; flex-direction: column; } .doctor-review-actions { justify-content: flex-start; min-width: 0; } }
 * {
   margin: 0;
