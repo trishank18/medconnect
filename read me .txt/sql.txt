@@ -99,3 +99,5 @@ CREATE TABLE `patient_prescriptions` (
   CONSTRAINT `patient_prescriptions_ibfk_2` FOREIGN KEY (`patient_id`) REFERENCES `patients` (`id`),
   CONSTRAINT `patient_prescriptions_ibfk_3` FOREIGN KEY (`appointment_id`) REFERENCES `appointments` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- Run this once against an existing MedConnect database.
+ALTER TABLE doctors ADD COLUMN verification_status enum('pending','approved','rejected') NOT NULL DEFAULT 'pending' AFTER password;
