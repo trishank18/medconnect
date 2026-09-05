@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Choose your role - Patient or Doctor"/>
+  <title>Choose your care workspace - MedConnect</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#123044" />
+</head>
+<body class="role-page">
+
+  <main class="role-shell">
+    <nav class="landing-nav" aria-label="Main navigation">
+      <a class="brand-mark" href="index.html"><span>MC</span> MedConnect</a>
+      <div class="role-nav-actions">
+        <button class="role-nav-switch" type="button" aria-label="Switch to patient workspace" aria-pressed="false">
+          <span class="role-nav-switch-icon" aria-hidden="true">&#8646;</span>
+          <span class="role-nav-switch-label">Switch to patient</span>
+        </button>
+        <a class="nav-link" href="index.html"><span aria-hidden="true">&#8592;</span> Home</a>
+      </div>
+    </nav>
+
+    <section class="role-slider" aria-label="Select your MedConnect workspace">
+      <div class="role-slide-track">
+        <article class="role-slide role-slide-doctor is-active" data-role="doctor">
+          <div class="role-slide-copy">
+            <p class="eyebrow">Clinical workspace</p>
+            <h1>For doctors who need the full picture.</h1>
+            <p>Manage patient context, appointments, prescriptions, and health trends from one focused workspace.</p>
+            <a href="doctor-login.html" class="btn role-action">Continue as a doctor <span aria-hidden="true">&#8594;</span></a>
+          </div>
+          <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=1100&q=85" alt="Doctor in a clinical workspace">
+        </article>
+        <article class="role-slide role-slide-patient" data-role="patient">
+          <div class="role-slide-copy">
+            <p class="eyebrow">Personal care workspace</p>
+            <h1>For patients who want care in view.</h1>
+            <p>Keep your appointments, readings, prescriptions, and personal health history close at hand.</p>
+            <a href="patient-login.html" class="btn role-action">Continue as a patient <span aria-hidden="true">&#8594;</span></a>
+          </div>
+          <img src="https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=1100&q=85" alt="Patient receiving care in a hospital">
+        </article>
+      </div>
+    </section>
+
+    <div class="role-arrows" aria-label="Switch role">
+      <button class="role-arrow" type="button" data-direction="previous" aria-label="Show doctor workspace">&#8592;</button>
+      <span class="role-position" aria-live="polite">01 / 02</span>
+      <button class="role-arrow" type="button" data-direction="next" aria-label="Show patient workspace">&#8594;</button>
+    </div>
+  </main>
+
+  <script>
+    const track = document.querySelector('.role-slide-track');
+    const slides = document.querySelectorAll('.role-slide');
+    const arrows = document.querySelectorAll('.role-arrow');
+    const position = document.querySelector('.role-position');
+    const slider = document.querySelector('.role-slider');
+    const navSwitch = document.querySelector('.role-nav-switch');
+    let activeRole = 'doctor';
+    let dragStartX = null;
+    let lastWheelSwitch = 0;
+
+    function switchRole(direction) {
+      activeRole = direction === 'next' ? 'patient' : 'doctor';
+      track.style.transform = activeRole === 'patient' ? 'translateX(-50%)' : 'translateX(0)';
+      position.textContent = activeRole === 'patient' ? '02 / 02' : '01 / 02';
+      slides.forEach((slide) => slide.classList.toggle('is-active', slide.dataset.role === activeRole));
+      navSwitch.setAttribute('aria-pressed', String(activeRole === 'patient'));
+      navSwitch.setAttribute('aria-label', activeRole === 'patient' ? 'Switch to doctor workspace' : 'Switch to patient workspace');
+      navSwitch.querySelector('.role-nav-switch-label').textContent = activeRole === 'patient' ? 'Switch to doctor' : 'Switch to patient';
+    }
+
+    function startDrag(clientX) { dragStartX = clientX; }
+    function endDrag(clientX) {
+      if (dragStartX === null) return;
+      const distance = clientX - dragStartX;
+      if (Math.abs(distance) >= 50) switchRole(distance < 0 ? 'next' : 'previous');
+      dragStartX = null;
+    }
+
+    arrows.forEach((arrow) => {
+      arrow.addEventListener('click', () => {
+        switchRole(arrow.dataset.direction);
+      });
+    });
+
+    navSwitch.addEventListener('click', () => {
+      switchRole(activeRole === 'doctor' ? 'next' : 'previous');
+    });
+
+    document.querySelectorAll('.role-action').forEach((action) => {
+      action.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+        window.location.assign(action.href);
+      });
+      action.addEventListener('mousedown', (event) => event.stopPropagation());
+    });
+
+    slider.addEventListener('pointerdown', (event) => {
+      if (event.target.closest('a, button')) return;
+      startDrag(event.clientX);
+      slider.setPointerCapture(event.pointerId);
+    });
+
+    slider.addEventListener('pointerup', (event) => {
+      endDrag(event.clientX);
+    });
+
+    slider.addEventListener('pointercancel', () => { dragStartX = null; });
+    slider.addEventListener('mousedown', (event) => {
+      if (event.target.closest('a, button')) return;
+      startDrag(event.clientX);
+    });
+    slider.addEventListener('mouseup', (event) => { endDrag(event.clientX); });
+    slider.addEventListener('mouseleave', () => { dragStartX = null; });
+    slider.addEventListener('wheel', (event) => {
+      if (Math.abs(event.deltaY) < 20) return;
+      const now = Date.now();
+      if (now - lastWheelSwitch < 500) {
+        event.preventDefault();
+        return;
+      }
+      lastWheelSwitch = now;
+      event.preventDefault();
+      switchRole(event.deltaY > 0 ? 'next' : 'previous');
+    }, { passive: false });
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+    }
+  </script>
+
+  <script src="js/design-switch.js"></script>
+</body>
+</html>

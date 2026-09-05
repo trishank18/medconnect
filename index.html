@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="MedConnect - Connecting patients and doctors with smarter, faster health insights"/>
+  <title>MedConnect | Connected care, clearer decisions</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#123044" />
+</head>
+<body class="welcome-page">
+
+  <main class="landing-shell">
+    <nav class="landing-nav" aria-label="Main navigation">
+      <a class="brand-mark" href="index.html"><span>MC</span> MedConnect</a>
+      <div class="role-nav-actions">
+        <a class="app-switch-link" href="#about">About us <span aria-hidden="true">&#8595;</span></a>
+        <a class="app-switch-link" href="app.html">Open mobile app <span aria-hidden="true">&#8599;</span></a>
+        <a class="nav-link" href="choose-role.html">Sign in <span aria-hidden="true">&#8594;</span></a>
+      </div>
+    </nav>
+
+    <section class="landing-hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Connected care platform</p>
+        <h1>Healthcare that keeps every important detail in view.</h1>
+        <p class="hero-lede">MedConnect brings patients, doctors, appointments, prescriptions, and live health readings into one dependable workspace.</p>
+        <div class="hero-actions">
+          <a href="choose-role.html" class="btn get-started">Get started <span aria-hidden="true">&#8594;</span></a>
+          <span class="hero-note"><strong>One secure place</strong><br>for everyday care</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-intro" aria-labelledby="intro-title">
+      <div>
+        <p class="eyebrow">A clearer care journey</p>
+        <h2 id="intro-title">Built for the work between appointments.</h2>
+      </div>
+      <p>From a morning reading to a completed consultation, MedConnect gives care teams and patients the context they need to act with confidence.</p>
+    </section>
+
+    <section class="landing-features" aria-label="MedConnect features">
+      <article class="feature-card">
+        <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=80" alt="Doctor reviewing a patient's health information">
+        <div class="feature-body"><span class="feature-number">01 <span class="feature-symbol" aria-hidden="true">&#9829;</span></span><h3>For doctors</h3><p>Review patient context, manage appointments, and record prescriptions from one focused dashboard.</p></div>
+      </article>
+      <article class="feature-card">
+        <img src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=900&q=80" alt="Healthcare professional discussing care with a patient">
+        <div class="feature-body"><span class="feature-number">02 <span class="feature-symbol" aria-hidden="true">&#9673;</span></span><h3>For patients</h3><p>Keep your profile, appointments, health history, and prescriptions easy to access whenever you need them.</p></div>
+      </article>
+      <article class="feature-card feature-card-accent">
+        <img src="https://images.unsplash.com/photo-1559757175-0eb30cd8c063?auto=format&fit=crop&w=900&q=80" alt="Close-up of a person checking health information on a device">
+        <div class="feature-body"><span class="feature-number">03 <span class="feature-symbol" aria-hidden="true">&#10010;</span></span><h3>Health insights</h3><p>Track vital readings over time and use personal pattern screening to notice meaningful changes earlier.</p></div>
+      </article>
+    </section>
+
+    <section class="about-section" id="about" aria-labelledby="about-title">
+      <div class="about-image-wrap">
+        <img src="https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=1200&q=85" alt="Healthcare team working together in a hospital">
+        <div class="about-image-badge"><span aria-hidden="true">&#10003;</span><strong>Care, connected</strong><small>Built around your health story</small></div>
+      </div>
+      <div class="about-copy">
+        <p class="eyebrow">About MedConnect</p>
+        <h2 id="about-title">A calmer way to stay close to care.</h2>
+        <p>MedConnect is a digital hospital companion that helps people and care teams share the details that matter. We bring everyday health information, appointments, and treatment plans into one clear, dependable experience.</p>
+        <div class="about-values">
+          <div><span class="value-icon" aria-hidden="true">&#9825;</span><strong>Human first</strong><small>Simple tools for real conversations.</small></div>
+          <div><span class="value-icon" aria-hidden="true">&#10003;</span><strong>Trusted context</strong><small>Important details, ready when needed.</small></div>
+          <div><span class="value-icon" aria-hidden="true">&#8634;</span><strong>Always improving</strong><small>Care that learns with you.</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-proof">
+      <div class="proof-stat"><strong>01</strong><span>shared care record</span></div>
+      <div class="proof-stat"><strong>24/7</strong><span>access to your history</span></div>
+      <div class="proof-stat"><strong>1:1</strong><span>patient-specific context</span></div>
+      <div class="proof-copy"><p class="eyebrow">Designed around people</p><p>Good care is easier when the right information is available at the right moment.</p></div>
+    </section>
+
+    <footer class="landing-footer">
+      <div><a class="brand-mark" href="index.html"><span>MC</span> MedConnect</a><p>Practical tools for better-connected care.</p></div>
+      <a href="choose-role.html" class="btn">Enter MedConnect <span aria-hidden="true">&#8594;</span></a>
+    </footer>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+    }
+  </script>
+  <script src="js/design-switch.js"></script>
+</body>
+</html>

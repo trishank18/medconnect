@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Doctor Login - MedConnect"/>
+  <title>Doctor Login - MedConnect</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="login-page">
+
+  <div class="auth-layout">
+    <aside class="auth-visual"><span class="auth-mark" aria-hidden="true">&#9877;</span><p class="eyebrow">Clinical workspace</p><h1>Make every consultation more informed.</h1><img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=900&q=85" alt="Doctor in a clinical workspace"></aside>
+    <div class="login-container">
+    <h2>🩺 Doctor Login</h2>
+    <form action="doctor/login_doctor.php" method="POST">
+      <input type="text" placeholder="Username" name="username" required autocomplete="username" />
+      <span class="password-field"><input id="doctor-password" type="password" placeholder="Password" name="password" required autocomplete="current-password" /><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false" data-password-target="doctor-password">&#128065;</button></span>
+      <button type="submit" class="btn login-btn">Login</button>
+      <p class="switch-link"><a href="forgot-password.php?role=doctor">Forgot password?</a></p>
+      <p class="switch-link">Not registered? <a href="doctor-register.html">Register here</a></p>
+    </form>
+    </div>
+  </div>
+
+  <script>
+    document.querySelector('.password-toggle').addEventListener('click', function () {
+      const password = document.getElementById(this.dataset.passwordTarget);
+      const isVisible = password.type === 'text';
+      password.type = isVisible ? 'password' : 'text';
+      this.setAttribute('aria-pressed', String(!isVisible));
+      this.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+    });
+  </script>
+  <script src="js/design-switch.js"></script>
+</body>
+</html>
