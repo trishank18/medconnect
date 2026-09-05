@@ -35,7 +35,7 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
   <title>Admin Dashboard - MedConnect</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+<body class="admin-page">
   <header class="topbar">
     <a class="brand-mark" href="admin-dashboard.php"><span>MC</span> MedConnect</a>
     <nav><a href="admin-logout.php">Sign out</a></nav>
@@ -47,6 +47,11 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
     </section>
     <div class="page-heading"><div><p>Review clinician registrations before they can access the doctor workspace.</p></div></div>
     <?php if (isset($_GET['updated'])): ?><p class="success-message">Doctor marked as <?= e($_GET['updated']) ?>.</p><?php endif; ?>
+    <section class="admin-metrics" aria-label="Verification queue summary">
+      <div class="admin-metric"><span>Pending review</span><strong><?= (int) ($counts['pending'] ?? 0) ?></strong><small>Needs attention</small></div>
+      <div class="admin-metric"><span>Approved doctors</span><strong><?= (int) ($counts['approved'] ?? 0) ?></strong><small>Active access</small></div>
+      <div class="admin-metric"><span>Rejected doctors</span><strong><?= (int) ($counts['rejected'] ?? 0) ?></strong><small>Not approved</small></div>
+    </section>
     <div class="admin-tabs">
       <?php foreach (['pending', 'approved', 'rejected', 'all'] as $tab): ?>
         <a class="admin-tab<?= $statusFilter === $tab ? ' active' : '' ?>" href="?status=<?= $tab ?>">
