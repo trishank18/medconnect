@@ -41,6 +41,10 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
     <nav><a href="admin-logout.php">Sign out</a></nav>
   </header>
   <main class="admin-shell">
+    <section class="admin-hero" aria-label="Administrator workspace image">
+      <img src="admin.png" alt="Administrator standing outside the university library" />
+      <div class="admin-hero-copy"><p class="eyebrow">Trusted care operations</p><h1>Welcome, <?= e($_SESSION['admin_username'] ?? 'Administrator') ?></h1></div>
+    </section>
     <div class="page-heading"><div><p class="eyebrow">Administrator workspace</p><h1>Doctor verification</h1><p>Review clinician registrations before they can access the doctor workspace.</p></div></div>
     <?php if (isset($_GET['updated'])): ?><p class="success-message">Doctor marked as <?= e($_GET['updated']) ?>.</p><?php endif; ?>
     <div class="admin-tabs">

@@ -1,5 +1,11 @@
 /* Admin verification workspace */
 .admin-shell { max-width: 1180px; margin: 0 auto; padding: 48px 24px 72px; }
+.admin-hero { position: relative; overflow: hidden; min-height: 260px; margin-bottom: 34px; border-radius: 8px; background: #18333b; }
+.admin-hero::after { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(24, 51, 59, .78), rgba(24, 51, 59, .12)); content: ''; }
+.admin-hero img { display: block; width: 100%; height: 300px; object-fit: cover; object-position: center 38%; }
+.admin-hero-copy { position: absolute; z-index: 1; top: 50%; left: 34px; color: #fff; transform: translateY(-50%); }
+.admin-hero-copy .eyebrow { color: #d8f3e5; }
+.admin-hero-copy h1 { margin: 0; color: #fff; font-family: 'Source Serif 4', Georgia, serif; font-size: clamp(2rem, 4vw, 3.5rem); }
 .admin-shell .page-heading { margin-bottom: 28px; }
 .admin-shell h1 { margin-bottom: 8px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 5%; border-bottom: 1px solid rgba(20, 36, 58, .12); background: #fff; }
@@ -22,7 +28,7 @@
 .status-rejected { background: #fde2e2; color: #922b2b; }
 .empty-state { padding: 36px 24px; text-align: center; }
 .form-note { margin: -8px 0 20px; opacity: .75; }
-@media (max-width: 700px) { .doctor-review-row { align-items: flex-start; flex-direction: column; } .doctor-review-actions { justify-content: flex-start; min-width: 0; } }
+@media (max-width: 700px) { .admin-hero img { height: 240px; } .admin-hero-copy { left: 22px; } .doctor-review-row { align-items: flex-start; flex-direction: column; } .doctor-review-actions { justify-content: flex-start; min-width: 0; } }
 * {
   margin: 0;
   padding: 0;
