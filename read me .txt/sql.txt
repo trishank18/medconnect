@@ -101,3 +101,16 @@ CREATE TABLE `patient_prescriptions` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- Run this once against an existing MedConnect database.
 ALTER TABLE doctors ADD COLUMN verification_status enum('pending','approved','rejected') NOT NULL DEFAULT 'pending' AFTER password;
+
+-- Password reset OTP storage. The application also creates this table automatically when needed.
+CREATE TABLE `password_reset_otps` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `role` varchar(20) NOT NULL,
+  `account_id` int(11) NOT NULL,
+  `otp_hash` varchar(255) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `attempts` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `account_lookup` (`role`, `account_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
