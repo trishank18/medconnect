@@ -20,6 +20,9 @@ try {
         exit();
     }
 
+      $applicationStatus = $doctor['verification_status'] ?? 'pending';
+      $applicationStatusLabel = $applicationStatus === 'approved' ? 'Accepted' : ucfirst($applicationStatus);
+
     $directoryStmt = $conn->query("SELECT id, fullname, email, phone, department FROM doctors ORDER BY department, fullname");
     $doctorsByDepartment = [];
     foreach ($directoryStmt->fetchAll(PDO::FETCH_ASSOC) as $directoryDoctor) {
@@ -277,6 +280,18 @@ try {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="card mb-4 border-<?= $applicationStatus === 'approved' ? 'success' : ($applicationStatus === 'rejected' ? 'danger' : 'warning') ?>">
+      <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+          <h5 class="mb-1"><i class="bi bi-file-earmark-check me-2"></i>Doctor application status</h5>
+          <p class="text-muted mb-0">Your registration application is currently <?= strtolower($applicationStatusLabel) ?>.</p>
+        </div>
+        <span class="badge bg-<?= $applicationStatus === 'approved' ? 'success' : ($applicationStatus === 'rejected' ? 'danger' : 'warning text-dark') ?> fs-6 px-3 py-2">
+          <?= htmlspecialchars($applicationStatusLabel) ?>
+        </span>
       </div>
     </div>
 
@@ -587,6 +602,15 @@ try {
             <div class="card-body">
               <h6><i class="bi bi-person-badge"></i> Doctor ID</h6>
               <p><?= htmlspecialchars($doctor['id']) ?></p>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-body d-flex justify-content-between align-items-center">
+              <h6 class="mb-0"><i class="bi bi-file-earmark-check"></i> Application status</h6>
+              <span class="badge bg-<?= $applicationStatus === 'approved' ? 'success' : ($applicationStatus === 'rejected' ? 'danger' : 'warning text-dark') ?>">
+                <?= htmlspecialchars($applicationStatusLabel) ?>
+              </span>
             </div>
           </div>
         </div>

@@ -46,18 +46,18 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
       <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1400&q=85" alt="Healthcare professional reviewing information on a tablet" />
       <div class="admin-hero-copy"><p class="eyebrow">Administrator workspace</p><h1>Doctor verification</h1></div>
     </section>
-    <div class="page-heading"><div><p>Review clinician registrations before they can access the doctor workspace.</p></div></div>
+    <div class="page-heading"><div><p>Review clinician applications before they can access the doctor workspace.</p></div></div>
     <?php if (isset($_GET['updated'])): ?><p class="success-message">Doctor marked as <?= e($_GET['updated']) ?>.</p><?php endif; ?>
     <section class="admin-metrics" aria-label="Verification queue summary">
       <div class="admin-metric"><span>Pending review</span><strong><?= (int) ($counts['pending'] ?? 0) ?></strong><small>Needs attention</small></div>
-      <div class="admin-metric"><span>Approved doctors</span><strong><?= (int) ($counts['approved'] ?? 0) ?></strong><small>Active access</small></div>
+      <div class="admin-metric"><span>Accepted applications</span><strong><?= (int) ($counts['approved'] ?? 0) ?></strong><small>Active access</small></div>
       <div class="admin-metric"><span>Rejected doctors</span><strong><?= (int) ($counts['rejected'] ?? 0) ?></strong><small>Not approved</small></div>
       <div class="admin-metric"><span>Total patients</span><strong><?= $patientCount ?></strong><small>Registered accounts</small></div>
     </section>
-    <div class="admin-tabs">
+    <div class="admin-tabs" aria-label="Doctor application status filters">
       <?php foreach (['pending', 'approved', 'rejected', 'all'] as $tab): ?>
         <a class="admin-tab<?= $statusFilter === $tab ? ' active' : '' ?>" href="?status=<?= $tab ?>">
-          <?= ucfirst($tab) ?> <strong><?= $tab === 'all' ? array_sum($counts) : (int) ($counts[$tab] ?? 0) ?></strong>
+          <?= $tab === 'pending' ? 'Pending applications' : ($tab === 'approved' ? 'Accepted applications' : ($tab === 'rejected' ? 'Rejected applications' : 'All doctors')) ?> <strong><?= $tab === 'all' ? array_sum($counts) : (int) ($counts[$tab] ?? 0) ?></strong>
         </a>
       <?php endforeach; ?>
     </div>
