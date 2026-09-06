@@ -22,6 +22,7 @@ try {
 
       $applicationStatus = $doctor['verification_status'] ?? 'pending';
       $applicationStatusLabel = $applicationStatus === 'approved' ? 'Accepted' : ucfirst($applicationStatus);
+      $canAccessAppointments = $applicationStatus === 'approved';
 
     $directoryStmt = $conn->query("SELECT id, fullname, email, phone, department FROM doctors ORDER BY department, fullname");
     $doctorsByDepartment = [];
@@ -30,7 +31,7 @@ try {
     }
 
     // Handle form submissions
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $applicationStatus === 'approved') {
         if (isset($_POST['update_profile'])) {
             $fullname = $_POST['fullname'];
             $email = $_POST['email'];
@@ -116,10 +117,12 @@ try {
             ) latest ON hm.patient_id = latest.patient_id AND hm.recorded_at = latest.max_time
         ) hm ON p.id = hm.patient_id
         WHERE a.doctor_id = :doc_id
+          AND :access_granted = 1
         GROUP BY p.id
         ORDER BY p.fullname
     ");
     $stmt->bindParam(':doc_id', $_SESSION['doctor_id']);
+    $stmt->bindValue(':access_granted', $canAccessAppointments ? 1 : 0, PDO::PARAM_INT);
     $stmt->execute();
     $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -143,9 +146,11 @@ try {
         FROM appointments a
         INNER JOIN patients p ON a.patient_id = p.id
         WHERE a.doctor_id = :doc_id
+          AND :access_granted = 1
         ORDER BY a.appointment_date DESC, a.appointment_time DESC
     ");
     $stmt->bindParam(':doc_id', $_SESSION['doctor_id']);
+    $stmt->bindValue(':access_granted', $canAccessAppointments ? 1 : 0, PDO::PARAM_INT);
     $stmt->execute();
     $appointments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -295,6 +300,12 @@ try {
       </div>
     </div>
 
+    <?php if (!$canAccessAppointments): ?>
+      <div class="alert alert-warning mb-4" role="alert">
+        <i class="bi bi-lock-fill me-2"></i>Appointments and patient records will be available after your application is accepted.
+      </div>
+    <?php endif; ?>
+
     <ul class="nav nav-tabs mb-4" id="doctorDashboardTabs" role="tablist">
       <li class="nav-item" role="presentation">
         <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard-tab-pane" type="button" role="tab" aria-controls="dashboard-tab-pane" aria-selected="true">
@@ -306,12 +317,14 @@ try {
           <i class="bi bi-hospital me-1"></i>Doctors
         </button>
       </li>
+      <?php if ($canAccessAppointments): ?>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointments-tab-pane" type="button" role="tab" aria-controls="appointments-tab-pane" aria-selected="false">
           <i class="bi bi-calendar-check me-1"></i>Appointments
           <span class="badge bg-info ms-1"><?= count($appointments) ?></span>
         </button>
       </li>
+      <?php endif; ?>
     </ul>
 
     <div class="tab-content" id="doctorDashboardTabContent">

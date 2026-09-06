@@ -38,6 +38,19 @@ try {
         // Refresh patient data
         $stmt->execute();
         $patient = $stmt->fetch(PDO::FETCH_ASSOC);
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_appointment'])) {
+        $appointmentId = filter_input(INPUT_POST, 'appointment_id', FILTER_VALIDATE_INT);
+
+        if ($appointmentId) {
+            $cancelStmt = $conn->prepare("UPDATE appointments SET status = 'cancelled' WHERE id = :id AND patient_id = :patient_id AND status = 'pending'");
+            $cancelStmt->execute([
+                ':id' => $appointmentId,
+                ':patient_id' => $_SESSION['patient_id']
+            ]);
+        }
+
+        header("Location: patient-dashboard.php?appointment_cancelled=1#appointments");
+        exit();
     }
 
     // Fetch latest health metrics
@@ -111,7 +124,7 @@ try {
     }
 
     // Fetch doctor list
-    $doctors = $conn->query("SELECT id, fullname, department FROM doctors ORDER BY department, fullname")->fetchAll(PDO::FETCH_ASSOC);
+    $doctors = $conn->query("SELECT id, fullname, department, verification_status FROM doctors WHERE verification_status = 'approved' ORDER BY department, fullname")->fetchAll(PDO::FETCH_ASSOC);
     $doctors_by_department = [];
     foreach ($doctors as $doctor) {
         $department = trim((string) ($doctor['department'] ?? 'General')) ?: 'General';
@@ -120,7 +133,7 @@ try {
 
     // Fetch patient appointments
     $appt_stmt = $conn->prepare("
-        SELECT a.*, d.fullname AS doctor_name, d.department AS doctor_department
+        SELECT a.*, d.fullname AS doctor_name, d.department AS doctor_department, d.verification_status AS doctor_verification_status
         FROM appointments a 
         JOIN doctors d ON a.doctor_id = d.id 
         WHERE a.patient_id = :patient_id 
@@ -132,7 +145,7 @@ try {
 
     // Fetch prescriptions from patient_prescriptions
     $presc_stmt = $conn->prepare("
-        SELECT pp.*, d.fullname AS doctor_name 
+        SELECT pp.*, d.fullname AS doctor_name, d.verification_status AS doctor_verification_status
         FROM patient_prescriptions pp
         JOIN doctors d ON pp.doctor_id = d.id
         WHERE pp.patient_id = :patient_id
@@ -199,6 +212,10 @@ try {
             </div>
         </div>
     </div>
+
+    <?php if (isset($_GET['appointment_cancelled'])): ?>
+        <div class="alert alert-success" role="alert">Appointment removed successfully.</div>
+    <?php endif; ?>
 
     <!-- Health Metrics Display (unchanged) -->
     <h4 class="mb-3">🩺 Latest Health Metrics</h4>
@@ -327,12 +344,12 @@ try {
             </select>
         </div>
         <div class="col-md-4">
-            <label for="doctor_id" class="form-label">2. Select Doctor</label>
+            <label for="doctor_id" class="form-label">2. Select Doctor <span class="verified-badge" title="Verified doctor" aria-label="Verified doctor"><i class="bi bi-patch-check-fill"></i></span></label>
             <select class="form-select" id="doctor_id" name="doctor_id" required disabled>
                 <option value="">Choose a department first</option>
                 <?php foreach ($doctors_by_department as $department => $department_doctors): ?>
                     <?php foreach ($department_doctors as $doc): ?>
-                        <option value="<?= (int) $doc['id'] ?>" data-department="<?= htmlspecialchars($department, ENT_QUOTES) ?>" hidden><?= htmlspecialchars($doc['fullname']) ?></option>
+                        <option value="<?= (int) $doc['id'] ?>" data-department="<?= htmlspecialchars($department, ENT_QUOTES) ?>" hidden><?= htmlspecialchars($doc['fullname']) ?> &#10003;</option>
                     <?php endforeach; ?>
                 <?php endforeach; ?>
             </select>
@@ -373,12 +390,13 @@ try {
                     <th>Time</th>
                     <th>Status</th>
                     <th>Notes</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if ($appointments): foreach ($appointments as $appt): ?>
                     <tr>
-                        <td><?= htmlspecialchars($appt['doctor_name']) ?></td>
+                        <td><?= htmlspecialchars($appt['doctor_name']) ?><?php if (($appt['doctor_verification_status'] ?? '') === 'approved'): ?> <span class="verified-badge" title="Verified doctor"><i class="bi bi-patch-check-fill"></i></span><?php endif; ?></td>
                         <td><?= htmlspecialchars($appt['doctor_department'] ?? 'General') ?></td>
                         <td><?= $appt['appointment_date'] ?></td>
                         <td><?= $appt['appointment_time'] ?></td>
@@ -390,9 +408,22 @@ try {
                             </span>
                         </td>
                         <td><?= htmlspecialchars($appt['notes']) ?></td>
+                        <td>
+                            <?php if ($appt['status'] === 'pending'): ?>
+                                <form method="POST" onsubmit="return confirm('Remove this appointment?');">
+                                    <input type="hidden" name="cancel_appointment" value="1">
+                                    <input type="hidden" name="appointment_id" value="<?= (int) $appt['id'] ?>">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove appointment" aria-label="Remove appointment">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            <?php else: ?>
+                                <span class="text-muted">-</span>
+                            <?php endif; ?>
+                        </td>
                     </tr>
                 <?php endforeach; else: ?>
-                    <tr><td colspan="6" class="text-center">No appointments found.</td></tr>
+                    <tr><td colspan="7" class="text-center">No appointments found.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -417,7 +448,7 @@ try {
             <tbody>
                 <?php if ($prescriptions): foreach ($prescriptions as $presc): ?>
                     <tr>
-                        <td><?= htmlspecialchars($presc['doctor_name']) ?></td>
+                        <td><?= htmlspecialchars($presc['doctor_name']) ?><?php if (($presc['doctor_verification_status'] ?? '') === 'approved'): ?> <span class="verified-badge" title="Verified doctor"><i class="bi bi-patch-check-fill"></i></span><?php endif; ?></td>
                         <td><?= htmlspecialchars($presc['medication'] ?? 'N/A') ?></td>
                         <td><?= htmlspecialchars($presc['dosage'] ?? 'N/A') ?></td>
                         <td><?= nl2br(htmlspecialchars($presc['instructions'] ?? 'N/A')) ?></td>

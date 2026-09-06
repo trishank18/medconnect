@@ -17,7 +17,21 @@
       <input type="text" name="fullname" placeholder="Full Name" required />
       <input type="email" name="email" placeholder="Email" required />
       <input type="tel" name="phone" placeholder="Phone Number" required />
-      <input type="text" name="department" placeholder="Department" required />
+      <select name="department" required>
+        <option value="" selected disabled>Choose Department</option>
+        <option value="Cardiology">Cardiology</option>
+        <option value="Dermatology">Dermatology</option>
+        <option value="General Medicine">General Medicine</option>
+        <option value="Gynecology">Gynecology</option>
+        <option value="Neurology">Neurology</option>
+        <option value="Ophthalmology">Ophthalmology</option>
+        <option value="Orthopedics">Orthopedics</option>
+        <option value="Pediatrics">Pediatrics</option>
+        <option value="Psychiatry">Psychiatry</option>
+        <option value="Pulmonology">Pulmonology</option>
+        <option value="Dentistry">Dentistry</option>
+        <option value="ENT">ENT</option>
+      </select>
       <input type="text" name="username" placeholder="Username" required />
       <input type="password" name="password" placeholder="Password" required />
       <button type="submit" class="btn login-btn">Register</button>

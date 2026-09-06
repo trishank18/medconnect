@@ -15,6 +15,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $notes = $_POST['notes'] ?? '';
 
     try {
+        $doctorStmt = $conn->prepare("SELECT id FROM doctors WHERE id = :doctor_id AND verification_status = 'approved'");
+        $doctorStmt->execute([':doctor_id' => $doctor_id]);
+        if (!$doctorStmt->fetchColumn()) {
+            header("Location: patient-dashboard.php?error=doctor_not_verified");
+            exit();
+        }
+
         $stmt = $conn->prepare("
             INSERT INTO appointments (patient_id, doctor_id, appointment_date, appointment_time, notes)
             VALUES (:patient_id, :doctor_id, :appointment_date, :appointment_time, :notes)

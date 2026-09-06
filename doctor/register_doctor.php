@@ -5,7 +5,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $fullname = $_POST['fullname'];
     $email = $_POST['email'];
     $phone = $_POST['phone'];
-    $department = $_POST['department'];
+    $department = $_POST['department'] ?? '';
+    $allowedDepartments = [
+        'Cardiology', 'Dermatology', 'General Medicine', 'Gynecology',
+        'Neurology', 'Ophthalmology', 'Orthopedics', 'Pediatrics',
+        'Psychiatry', 'Pulmonology', 'Dentistry', 'ENT'
+    ];
+
+    if (!in_array($department, $allowedDepartments, true)) {
+        header("Location: ../doctor-register.html?error=invalid_department");
+        exit();
+    }
+
     $username = $_POST['username'];
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
