@@ -83,9 +83,21 @@ PYTHON_BIN=python3
 DEFAULT_PATIENT_ID=4
 ```
 
+## SMS password recovery
+
+Password recovery uses a six-digit OTP sent to the registered mobile number through Twilio. For local XAMPP use, copy `.env.example` to `.env` in the project root and replace the placeholder values with credentials from your Twilio account:
+
+```text
+TWILIO_ACCOUNT_SID=your_account_sid
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_FROM_NUMBER=+1234567890
+```
+
+Start Apache and MySQL in XAMPP, then open `http://localhost/medconnect/forgot-password.php`. The registered phone number must be stored in international format, including the country code. The `.env` file contains secrets and is excluded from Git.
+
 ## Administrator doctor verification
 
-Import the updated schema from `read me .txt/sql.txt`. For an existing database, run `read me .txt/migrate-verification.sql` once. New doctor registrations remain pending until an administrator approves them.
+Import the updated schema from `read me .txt/sql.txt`. For an existing database created before doctor verification was added, run `read me .txt/migrate-verification.sql` once. New doctor registrations remain pending until an administrator approves them.
 
 Configure the admin login with environment variables. Generate a password hash with `C:\xampp\php\php.exe -r "echo password_hash('your-password', PASSWORD_DEFAULT), PHP_EOL;"` and store the output as `ADMIN_PASSWORD_HASH`:
 

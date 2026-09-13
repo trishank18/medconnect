@@ -22,6 +22,15 @@
     </nav>
 
     <section class="landing-hero">
+      <div class="hero-scene" aria-hidden="true">
+        <div class="scene-grid"></div>
+        <div class="scene-orbit scene-orbit-wide"><span class="scene-node node-patient"></span><span class="scene-node node-doctor"></span></div>
+        <div class="scene-orbit scene-orbit-tight"><span class="scene-node node-signal"></span></div>
+        <div class="scene-core"><span>MC</span></div>
+        <div class="scene-label label-patient">Patient data</div>
+        <div class="scene-label label-doctor">Care team</div>
+        <div class="scene-label label-signal">Live signals</div>
+      </div>
       <div class="hero-copy">
         <p class="eyebrow">Connected care platform</p>
         <h1>Healthcare that keeps every important detail in view.</h1>
@@ -84,13 +93,14 @@
       <div><a class="brand-mark" href="index.html"><span>MC</span> MedConnect</a><p>Practical tools for better-connected care.</p></div>
       <a href="choose-role.html" class="btn">Enter MedConnect <span aria-hidden="true">&#8594;</span></a>
     </footer>
-  </div>
+  </main>
 
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
     }
   </script>
+  <script src="js/hero-3d.js"></script>
   <script src="js/design-switch.js"></script>
 </body>
 </html>

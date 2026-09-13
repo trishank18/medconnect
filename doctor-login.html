@@ -23,7 +23,6 @@
     </form>
     </div>
   </div>
-
   <script>
     const loginStatus = document.getElementById('login-status');
     const query = new URLSearchParams(window.location.search);
@@ -36,7 +35,11 @@
     };
     const statusKey = query.get('error');
 
-    if (query.get('registration') === 'success') {
+    if (query.get('reset') === 'success') {
+      loginStatus.innerHTML = '<strong>Password updated</strong><br>Your password has been reset successfully. You can now sign in with your new password.';
+      loginStatus.classList.add('login-status-success');
+      loginStatus.hidden = false;
+    } else if (query.get('registration') === 'success') {
       loginStatus.innerHTML = '<strong>Registration submitted</strong><br>Your application is pending admin verification. You can log in after it is accepted.';
       loginStatus.classList.add('login-status-success');
       loginStatus.hidden = false;

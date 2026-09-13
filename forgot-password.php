@@ -1,11 +1,13 @@
 <?php
 session_start();
 require_once __DIR__ . '/includes/db_connection.php';
+require_once __DIR__ . '/includes/sms_service.php';
 
 $message = '';
 $messageType = 'info';
 $role = $_POST['role'] ?? $_GET['role'] ?? 'patient';
 $resetRequest = $_SESSION['password_reset_request'] ?? null;
+$debugOtp = $_SESSION['password_reset_debug_otp'] ?? '';
 $step = $resetRequest ? 'verify' : 'request';
 
 if (!in_array($role, ['doctor', 'patient'], true)) {
@@ -30,15 +32,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'request_otp') {
       $username = trim($_POST['username'] ?? '');
-      $email = trim($_POST['email'] ?? '');
+      $phone = trim($_POST['phone'] ?? '');
 
-      if ($username === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $message = 'Enter a valid username and registered email address.';
+      if ($username === '' || $phone === '') {
+        $message = 'Enter a valid username and registered mobile number.';
         $messageType = 'danger';
       } else {
         $table = $role === 'doctor' ? 'doctors' : 'patients';
-        $stmt = $conn->prepare("SELECT id FROM {$table} WHERE username = :username AND email = :email LIMIT 1");
-        $stmt->execute([':username' => $username, ':email' => $email]);
+        $stmt = $conn->prepare("SELECT id, phone FROM {$table} WHERE username = :username AND phone = :phone LIMIT 1");
+        $stmt->execute([':username' => $username, ':phone' => $phone]);
         $account = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($account) {
@@ -56,23 +58,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':expires_at' => $expiresAt
           ]);
 
-          $subject = 'MedConnect password reset code';
-          $body = "Your MedConnect password reset code is {$otp}. It expires in 10 minutes.";
-          $from = getenv('MAIL_FROM') ?: 'no-reply@medconnect.local';
-          $headers = "From: {$from}\r\nContent-Type: text/plain; charset=UTF-8\r\n";
-          mail($email, $subject, $body, $headers);
+          $smsBody = "Your MedConnect password reset code is {$otp}. It expires in 10 minutes.";
+          $smsSent = medconnect_send_sms((string) ($account['phone'] ?? ''), $smsBody);
 
           $_SESSION['password_reset_request'] = [
             'role' => $role,
             'account_id' => (int) $account['id'],
-            'email' => $email
+            'phone' => (string) ($account['phone'] ?? '')
           ];
+          $_SESSION['password_reset_debug_otp'] = $smsSent ? '' : $otp;
           $resetRequest = $_SESSION['password_reset_request'];
+          $debugOtp = $_SESSION['password_reset_debug_otp'];
           $step = 'verify';
-        }
 
-        $message = 'If the account details match, a verification code has been sent to the registered email.';
-        $messageType = 'success';
+          if ($smsSent) {
+            $message = 'If the account details match, a verification code has been sent to the registered mobile number.';
+            $messageType = 'success';
+          } else {
+            $message = 'SMS gateway is not configured in this environment. Use the local demo OTP below to continue.';
+            $messageType = 'warning';
+          }
+        } else {
+          $message = 'If the account details match, a verification code has been sent to the registered mobile number.';
+          $messageType = 'success';
+        }
       }
     } elseif ($action === 'verify_otp' && $resetRequest) {
       $otp = trim($_POST['otp'] ?? '');
@@ -104,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         $conn->prepare("DELETE FROM password_reset_otps WHERE id = :id")
           ->execute([':id' => $otpRecord['id']]);
-        unset($_SESSION['password_reset_request']);
+        unset($_SESSION['password_reset_request'], $_SESSION['password_reset_debug_otp']);
         $loginPage = $resetRequest['role'] === 'doctor' ? 'doctor-login.html' : 'patient-login.html';
         header("Location: {$loginPage}?reset=success");
         exit();
@@ -131,15 +140,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <aside class="auth-visual"><span class="auth-mark" aria-hidden="true">&#10003;</span><p class="eyebrow">Account support</p><h1>Secure access to the care you count on.</h1><img src="https://images.unsplash.com/photo-1559757175-0eb30cd8c063?auto=format&fit=crop&w=900&q=85" alt="Person checking health information on a device"></aside>
     <div class="login-container">
     <h2><?= $step === 'verify' ? 'Verify Reset Code' : 'Reset Password' ?></h2>
-    <p><?= $step === 'verify' ? 'Enter the code sent to your registered email address.' : 'Receive a one-time code using your registered account details.' ?></p>
+    <p><?= $step === 'verify' ? 'Enter the code sent to your registered mobile number.' : 'Receive a one-time code using your registered account details.' ?></p>
 
     <?php if ($message !== ''): ?>
       <div class="alert alert-<?= htmlspecialchars($messageType) ?>" role="alert">
-        <?= htmlspecialchars($message) ?>
+        <?php if ($messageType === 'warning' && $debugOtp !== ''): ?>
+          <strong>Local demo OTP:</strong> <?= htmlspecialchars($debugOtp) ?><br>
+        <?php endif; ?>
+        <?= htmlspecialchars(strip_tags($message)) ?>
       </div>
     <?php endif; ?>
 
     <form method="POST" action="forgot-password.php">
+      <input type="hidden" name="role" value="<?= htmlspecialchars($role) ?>">
       <?php if ($step === 'request'): ?>
       <label for="role">Account type</label>
       <select id="role" name="role" required>
@@ -148,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </select>
 
       <input type="text" name="username" placeholder="Username" required autocomplete="username" value="<?= htmlspecialchars($_POST['username'] ?? '') ?>">
-      <input type="email" name="email" placeholder="Registered email" required autocomplete="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+      <input type="tel" name="phone" placeholder="Registered mobile number" required inputmode="tel" autocomplete="tel" value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>">
       <input type="hidden" name="action" value="request_otp">
       <button type="submit" class="btn login-btn">Send Verification Code</button>
       <?php else: ?>
