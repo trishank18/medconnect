@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="MedConnect mobile app" />
+  <title>MedConnect App</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#123044" />
+</head>
+<body class="app-page">
+  <main class="app-shell">
+    <nav class="landing-nav" aria-label="App navigation">
+      <a class="brand-mark" href="app.html"><span>MC</span> MedConnect</a>
+      <a class="app-switch-link" href="index.html">Website <span aria-hidden="true">&#8599;</span></a>
+    </nav>
+
+    <section class="app-intro" aria-labelledby="app-title">
+      <p class="eyebrow">Mobile care app</p>
+      <h1 id="app-title">Your care, ready when you are.</h1>
+      <p>Choose your workspace to sign in from the MedConnect app.</p>
+    </section>
+
+    <section class="app-roles" aria-label="Choose a workspace">
+      <a class="app-role-card" href="patient-login.html">
+        <span class="app-role-icon" aria-hidden="true">&#9825;</span>
+        <span><strong>Patient</strong><small>View readings, appointments, and prescriptions</small></span>
+        <span aria-hidden="true">&#8594;</span>
+      </a>
+      <a class="app-role-card app-role-card-dark" href="doctor-login.html">
+        <span class="app-role-icon" aria-hidden="true">&#9877;</span>
+        <span><strong>Doctor</strong><small>Manage care context, appointments, and patients</small></span>
+        <span aria-hidden="true">&#8594;</span>
+      </a>
+    </section>
+
+    <p class="app-note">This app uses the same secure MedConnect account as the website.</p>
+  </main>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+    }
+  </script>
+  <script src="js/design-switch.js"></script>
+</body>
+</html>

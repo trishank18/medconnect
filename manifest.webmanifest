@@ -1,0 +1,18 @@
+{
+  "name": "MedConnect",
+  "short_name": "MedConnect",
+  "description": "Connected care for patients and doctors.",
+  "start_url": "./app.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f7",
+  "theme_color": "#123044",
+  "icons": [
+    {
+      "src": "./app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

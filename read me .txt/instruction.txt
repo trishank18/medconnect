@@ -1,0 +1,18 @@
+save the project folder in XAMPP foldet in htdocs
+start apache and sql in XAMPP server
+now go to admin and execute sql queries
+save all and go to any browser and type 
+"http://localhost/medconnect/"
+Microsoft Windows [Version 10.0.26200.8117]
+(c) Microsoft Corporation. All rights reserved.
+
+C:\Windows\System32>netstat -ano | findstr :3306
+  TCP    0.0.0.0:3306           0.0.0.0:0              LISTENING       5416
+  TCP    0.0.0.0:33060          0.0.0.0:0              LISTENING       5416
+  TCP    [::]:3306              [::]:0                 LISTENING       5416
+  TCP    [::]:33060             [::]:0                 LISTENING       5416
+
+C:\Windows\System32>taskkill /F /PID 5416
+SUCCESS: The process with PID 5416 has been terminated.
+
+C:\Windows\System32>
