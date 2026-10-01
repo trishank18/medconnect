@@ -274,3 +274,39 @@ WHERE p.`username` LIKE 'pat%'
     FROM `health_metrics` AS hm
     WHERE hm.`patient_id` = p.`id`
   );
+
+-- Ensure every seeded patient has 100 readings in total.
+-- Change @health_readings_per_patient to any value from 100 to 200 as needed.
+SET @health_readings_per_patient = 100;
+
+INSERT INTO `health_metrics`
+  (`patient_id`, `heart_rate`, `spo2`, `temperature`, `blood_pressure_sys`, `blood_pressure_dia`, `recorded_at`)
+SELECT
+  p.`id`,
+  68 + MOD(p.`id` + readings.n * 3, 23),
+  96 + MOD(p.`id` + readings.n, 4),
+  36.4 + (MOD(p.`id` + readings.n, 5) * 0.1),
+  108 + MOD(p.`id` + readings.n * 2, 18),
+  68 + MOD(p.`id` + readings.n * 2, 12),
+  DATE_SUB(NOW(), INTERVAL (@health_readings_per_patient - readings.n) HOUR)
+FROM `patients` AS p
+JOIN (
+  SELECT ones.n + tens.n * 10 + hundreds.n * 100 AS n
+  FROM
+    (SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+     UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) AS ones
+    CROSS JOIN
+    (SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
+     UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) AS tens
+    CROSS JOIN
+    (SELECT 0 AS n UNION ALL SELECT 1) AS hundreds
+  WHERE ones.n + tens.n * 10 + hundreds.n * 100 BETWEEN 1 AND 200
+) AS readings
+LEFT JOIN (
+  SELECT `patient_id`, COUNT(*) AS reading_count
+  FROM `health_metrics`
+  GROUP BY `patient_id`
+) AS existing ON existing.`patient_id` = p.`id`
+WHERE p.`username` REGEXP '^pat[0-9]+$'
+  AND readings.n <= @health_readings_per_patient
+  AND readings.n > COALESCE(existing.reading_count, 0);
