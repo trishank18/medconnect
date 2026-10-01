@@ -112,6 +112,22 @@ CREATE TABLE `password_reset_otps` (
   KEY `account_lookup` (`role`, `account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Administrator credentials. The initial username is Sunny and the initial password is Sunny33@.
+CREATE TABLE IF NOT EXISTS `admin_credentials` (
+  `id` tinyint unsigned NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `admin_credentials` (`id`, `username`, `password_hash`)
+VALUES (1, 'Sunny', '$2y$10$HE7C1qay5QOO64bfjHUWj.ekj7BsicZjntkcDBrcamee3iFtBxcmy')
+ON DUPLICATE KEY UPDATE
+  `username` = VALUES(`username`),
+  `password_hash` = VALUES(`password_hash`);
+
 -- Seed accounts: password for every account is Sunny.
 -- Rerunning this section updates the existing seeded accounts instead of duplicating them.
 SET @seed_password_hash = '$2y$10$sVtK1y05Jsk4hSsG5krjUOcDJW3c4loF13byj7Up.Z8fFoDdzxe1S';

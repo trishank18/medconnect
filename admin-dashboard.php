@@ -39,7 +39,7 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
 <body class="admin-page">
   <header class="topbar">
     <a class="brand-mark" href="admin-dashboard.php"><span>MC</span> MedConnect</a>
-    <nav><a href="admin-logout.php">Sign out</a></nav>
+    <nav><a href="admin-reset.php">Reset credentials</a><a href="admin-logout.php">Sign out</a></nav>
   </header>
   <main class="admin-shell">
     <section class="admin-hero" aria-label="Administrator workspace image">

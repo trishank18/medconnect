@@ -1,13 +1,16 @@
 <?php
 session_start();
+require_once __DIR__ . '/includes/db_connection.php';
+require_once __DIR__ . '/includes/admin_auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: admin-login.html');
     exit();
 }
 
-$configuredUsername = 'Sunny';
-$configuredPasswordHash = '$2y$10$HE7C1qay5QOO64bfjHUWj.ekj7BsicZjntkcDBrcamee3iFtBxcmy';
+$credentials = get_admin_credentials($conn);
+$configuredUsername = $credentials['username'];
+$configuredPasswordHash = $credentials['password_hash'];
 $username = trim($_POST['username'] ?? '');
 $password = $_POST['password'] ?? '';
 
