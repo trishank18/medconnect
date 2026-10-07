@@ -468,6 +468,25 @@ try {
     </div>
 </div>
 
+<aside class="health-assistant" aria-label="MedConnect Health Assistant">
+    <div class="health-assistant-header">
+        <div>
+            <span class="health-assistant-kicker">MedConnect AI</span>
+            <h2>Health Assistant</h2>
+        </div>
+        <span class="health-assistant-status" aria-label="Ready"></span>
+    </div>
+    <div class="health-assistant-messages" id="healthAssistantMessages" aria-live="polite">
+        <div class="health-assistant-message model">Hi <?= htmlspecialchars(explode(' ', $patient['fullname'])[0]) ?>. Ask me about your readings or general health information. I cannot diagnose or replace a clinician.</div>
+    </div>
+    <form id="healthAssistantForm" class="health-assistant-form">
+        <label class="visually-hidden" for="healthAssistantInput">Ask the health assistant</label>
+        <input id="healthAssistantInput" name="question" maxlength="2000" autocomplete="off" placeholder="Ask a health question..." required>
+        <button type="submit" aria-label="Send question"><i class="bi bi-arrow-up"></i></button>
+    </form>
+    <p class="health-assistant-note">For emergencies, contact local emergency services.</p>
+</aside>
+
 <!-- View Profile Modal (NEW) -->
 <div class="modal fade" id="viewProfileModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -692,5 +711,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
     <script src="js/design-switch.js"></script>
+    <script src="js/health-assistant.js"></script>
 </body>
 </html>

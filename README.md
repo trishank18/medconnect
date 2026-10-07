@@ -81,7 +81,11 @@ DB_USER=your-mysql-user
 DB_PASSWORD=your-mysql-password
 PYTHON_BIN=python3
 DEFAULT_PATIENT_ID=4
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.0-flash
 ```
+
+The patient dashboard includes a health-information assistant powered by Gemini. Keep `GEMINI_API_KEY` server-side; it is never sent to the browser. The assistant provides general information only and is not a diagnostic or emergency service.
 
 ## SMS password recovery
 
