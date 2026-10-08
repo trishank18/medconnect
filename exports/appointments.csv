@@ -1102,4 +1102,3 @@ id,patient_id,doctor_id,appointment_date,appointment_time,status,notes,created_a
 1101,1126,81,2026-11-01,07:00:00,pending,"Scheduled by administrator for patient assignment.","2026-10-08 10:45:06"
 1102,1127,82,2026-11-01,07:30:00,pending,"Scheduled by administrator for patient assignment.","2026-10-08 10:45:06"
 1103,1128,83,2026-11-01,08:00:00,pending,"Scheduled by administrator for patient assignment.","2026-10-08 10:45:06"
-1104,1129,84,2026-11-01,08:30:00,pending,"Scheduled by administrator for patient assignment.","2026-10-08 10:45:06"
