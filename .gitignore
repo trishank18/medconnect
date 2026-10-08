@@ -8,8 +8,8 @@ __pycache__/
 *.py[cod]
 
 # Database exports may contain personal health information
-exports/*.csv
-exports/*.csv.tmp
+storage/exports/*.csv
+storage/storage/exports/*.csv.tmp
 
 # Local editor and operating-system files
 .vscode/
