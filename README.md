@@ -70,7 +70,7 @@ The PHP bridge calls `ml/predict_health.py` with the patient's readings. If Pyth
 
 ## Online deployment
 
-The repository includes a `Dockerfile` for a PHP, MySQL-client, and Python deployment. Use a cloud host that supports Docker and connect it to a MySQL database. Import the schema from `database/schema.sql` before opening the application.
+The repository includes a `Dockerfile` for a PHP, MySQL-client, and Python deployment. Use a cloud host that supports Docker and connect it to a MySQL database. Import the schema from `read me .txt/sql.txt` before opening the application.
 
 Set these environment variables in the cloud service. Do not commit their values:
 
@@ -98,11 +98,11 @@ TWILIO_AUTH_TOKEN=your_auth_token
 TWILIO_FROM_NUMBER=+1234567890
 ```
 
-Start Apache and MySQL in XAMPP, then open `http://localhost/medconnect/backend/forgot-password.php`. The registered phone number must be stored in international format, including the country code. The `.env` file contains secrets and is excluded from Git.
+Start Apache and MySQL in XAMPP, then open `http://localhost/medconnect/forgot-password.php`. The registered phone number must be stored in international format, including the country code. The `.env` file contains secrets and is excluded from Git.
 
 ## Administrator doctor verification
 
-Import the updated schema from `database/schema.sql`. For an existing database created before doctor verification was added, run `database/migrate-verification.sql` once. New doctor registrations remain pending until an administrator approves them.
+Import the updated schema from `read me .txt/sql.txt`. For an existing database created before doctor verification was added, run `read me .txt/migrate-verification.sql` once. New doctor registrations remain pending until an administrator approves them.
 
 Configure the admin login with environment variables. Generate a password hash with `C:\xampp\php\php.exe -r "echo password_hash('your-password', PASSWORD_DEFAULT), PHP_EOL;"` and store the output as `ADMIN_PASSWORD_HASH`:
 
@@ -111,26 +111,14 @@ ADMIN_USERNAME=your-admin-username
 ADMIN_PASSWORD_HASH=your-generated-password-hash
 ```
 
-Open `/admin/admin-login.html` to review pending doctors and approve or reject them. Keep both admin values private.
+Open `/admin-login.html` to review pending doctors and approve or reject them. Keep both admin values private.
 
 ## CSV data export
 
-After signing in as an administrator, use **Save CSV files** on the administrator dashboard. The application writes the current non-secret data to separate files in `storage/exports/`: doctors, patients, appointments, health metrics, suggestions, and prescriptions. Passwords, OTP hashes, and administrator credentials are never exported. Generated CSV files are excluded from Git because they may contain personal health information.
+After signing in as an administrator, use **Save CSV files** on the administrator dashboard. The application writes the current non-secret data to separate files in `exports/`: doctors, patients, appointments, health metrics, suggestions, and prescriptions. Passwords, OTP hashes, and administrator credentials are never exported. Generated CSV files are excluded from Git because they may contain personal health information.
 
-After deployment, update `serverUrl` in both ESP32 instruction files in `docs/` to the public HTTPS URL ending in `/backend/save_data.php`, then replace `YOUR_WIFI_PASSWORD` locally before uploading the sketch to the ESP32. Keep that real Wi-Fi password out of Git.
+After deployment, update `serverUrl` in both ESP32 instruction files to the public HTTPS URL ending in `/save_data.php`, then replace `YOUR_WIFI_PASSWORD` locally before uploading the sketch to the ESP32. Keep that real Wi-Fi password out of Git.
 
 ---
 
 ## 📁 Project Structure
-
-```text
-admin/                 Administrator pages and actions
-backend/               Shared PHP endpoints and database services
-database/              SQL schema and migrations
-docs/                  Setup and ESP32 instructions
-doctor/                Doctor dashboards and server handlers
-frontend/              Public HTML pages, CSS, JavaScript, and PWA files
-ml/                    Health prediction model
-patient/               Patient dashboards and server handlers
-storage/exports/       Generated CSV exports
-```

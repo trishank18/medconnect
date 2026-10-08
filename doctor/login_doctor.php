@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../backend/includes/db_connection.php';
+require_once '../includes/db_connection.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
@@ -20,19 +20,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 header("Location: ../doctor-dashboard.php");
                 exit();
             } else {
-                header("Location: ../../frontend/doctor-login.html?error=invalid_credentials");
+                header("Location: ../doctor-login.html?error=invalid_credentials");
                 exit();
             }
         } else {
-            header("Location: ../../frontend/doctor-login.html?error=user_not_found");
+            header("Location: ../doctor-login.html?error=user_not_found");
             exit();
         }
     } catch(PDOException $e) {
-        header("Location: ../../frontend/doctor-login.html?error=database_error");
+        header("Location: ../doctor-login.html?error=database_error");
         exit();
     }
 } else {
-    header("Location: ../../frontend/doctor-login.html");
+    header("Location: ../doctor-login.html");
     exit();
 }
 ?>

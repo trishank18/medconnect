@@ -1,5 +1,5 @@
 <?php
-require_once '../backend/includes/db_connection.php';
+require_once '../includes/db_connection.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $fullname = $_POST['fullname'];
@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     ];
 
     if (!in_array($department, $allowedDepartments, true)) {
-        header("Location: ../../frontend/doctor-register.html?error=invalid_department");
+        header("Location: ../doctor-register.html?error=invalid_department");
         exit();
     }
 
@@ -31,19 +31,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bindParam(':password', $password);
         $stmt->execute();
         
-        header("Location: ../../frontend/doctor-login.html?registration=success");
+        header("Location: ../doctor-login.html?registration=success");
         exit();
     } catch(PDOException $e) {
         if ($e->getCode() == 23000) {
             // Duplicate entry
-            header("Location: ../../frontend/doctor-register.html?error=duplicate_entry");
+            header("Location: ../doctor-register.html?error=duplicate_entry");
         } else {
-            header("Location: ../../frontend/doctor-register.html?error=database_error");
+            header("Location: ../doctor-register.html?error=database_error");
         }
         exit();
     }
 } else {
-    header("Location: ../../frontend/doctor-register.html");
+    header("Location: ../doctor-register.html");
     exit();
 }
 ?>

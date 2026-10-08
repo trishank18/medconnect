@@ -1,5 +1,5 @@
 <?php
-require_once '../backend/includes/db_connection.php';
+require_once '../includes/db_connection.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $fullname = $_POST['fullname'];
@@ -20,19 +20,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bindParam(':password', $password);
         $stmt->execute();
         
-        header("Location: ../../frontend/patient-login.html?registration=success");
+        header("Location: ../patient-login.html?registration=success");
         exit();
     } catch(PDOException $e) {
         if ($e->getCode() == 23000) {
             // Duplicate entry
-            header("Location: ../../frontend/patient-register.html?error=duplicate_entry");
+            header("Location: ../patient-register.html?error=duplicate_entry");
         } else {
-            header("Location: ../../frontend/patient-register.html?error=database_error");
+            header("Location: ../patient-register.html?error=database_error");
         }
         exit();
     }
 } else {
-    header("Location: ../../frontend/patient-register.html");
+    header("Location: ../patient-register.html");
     exit();
 }
 ?>
