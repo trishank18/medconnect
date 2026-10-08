@@ -169,29 +169,33 @@ const labels = <?= json_encode(array_map(static fn($row) => date('M j, H:i', str
 const chartRows = <?= json_encode($chartRows) ?>;
 let alertSoundEnabled = true;
 let alertSoundContext;
+let alertSoundTimers = [];
 
 function playRiskAlert() {
     if (!alertSoundEnabled) return;
     try {
         alertSoundContext = alertSoundContext || new (window.AudioContext || window.webkitAudioContext)();
         alertSoundContext.resume();
-        const pattern = [true, true, true, false, false, false, true, true, true];
+        const pattern = [880, 660, 880, 660];
         let offset = 0;
-        pattern.forEach(function (isShort) {
-            const duration = isShort ? .12 : .35;
+        for (let repeat = 0; repeat < 3; repeat += 1) {
+            pattern.forEach(function (frequency) {
+            const duration = .2;
             const oscillator = alertSoundContext.createOscillator();
             const gain = alertSoundContext.createGain();
             const start = alertSoundContext.currentTime + offset;
-            oscillator.frequency.value = 660;
-            oscillator.type = 'sine';
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'square';
             gain.gain.setValueAtTime(.0001, start);
-            gain.gain.exponentialRampToValueAtTime(.12, start + .02);
+            gain.gain.exponentialRampToValueAtTime(.3, start + .02);
             gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
             oscillator.connect(gain).connect(alertSoundContext.destination);
             oscillator.start(start);
             oscillator.stop(start + duration + .01);
-            offset += duration + .1;
-        });
+                offset += duration + .08;
+            });
+            offset += .25;
+        }
     } catch (error) {
         document.getElementById('soundControl').textContent = 'Enable alert sound';
     }
@@ -199,6 +203,7 @@ function playRiskAlert() {
 
 document.getElementById('soundControl').addEventListener('click', function () {
     alertSoundEnabled = !alertSoundEnabled;
+    if (alertSoundEnabled && document.body.classList.contains('risk-high')) playRiskAlert();
     this.innerHTML = alertSoundEnabled ? '<i class="bi bi-volume-up"></i> Alert sound on' : '<i class="bi bi-volume-mute"></i> Alert sound off';
 });
 

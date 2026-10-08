@@ -474,6 +474,10 @@ try {
             <span class="health-assistant-kicker">MedConnect AI</span>
             <h2>Health Assistant</h2>
         </div>
+        <a href="#book-appointment" class="btn btn-sm btn-outline-primary" title="Book an appointment">
+            <i class="bi bi-calendar2-plus" aria-hidden="true"></i>
+            <span class="visually-hidden">Book an appointment</span>
+        </a>
         <span class="health-assistant-status" aria-label="Ready"></span>
     </div>
     <div class="health-assistant-messages" id="healthAssistantMessages" aria-live="polite">
