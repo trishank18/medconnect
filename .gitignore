@@ -7,6 +7,10 @@
 __pycache__/
 *.py[cod]
 
+# Database exports may contain personal health information
+exports/*.csv
+exports/*.csv.tmp
+
 # Local editor and operating-system files
 .vscode/
 .DS_Store

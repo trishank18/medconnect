@@ -11,6 +11,7 @@ The data is sent to a **PHP + MySQL backend** hosted on **XAMPP**, where it can 
 - Patient login and registration system
 - Admin dashboard to manage patients and data
 - MySQL database integration
+- Administrator CSV data export
 - Responsive web interface using **HTML, CSS, JavaScript, PHP**
 - Personal anomaly screening using a scikit-learn Isolation Forest model
 - Local hosting with **XAMPP**
@@ -111,6 +112,10 @@ ADMIN_PASSWORD_HASH=your-generated-password-hash
 ```
 
 Open `/admin-login.html` to review pending doctors and approve or reject them. Keep both admin values private.
+
+## CSV data export
+
+After signing in as an administrator, use **Save CSV files** on the administrator dashboard. The application writes the current non-secret data to separate files in `exports/`: doctors, patients, appointments, health metrics, suggestions, and prescriptions. Passwords, OTP hashes, and administrator credentials are never exported. Generated CSV files are excluded from Git because they may contain personal health information.
 
 After deployment, update `serverUrl` in both ESP32 instruction files to the public HTTPS URL ending in `/save_data.php`, then replace `YOUR_WIFI_PASSWORD` locally before uploading the sketch to the ESP32. Keep that real Wi-Fi password out of Git.
 

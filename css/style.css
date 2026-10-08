@@ -12,7 +12,12 @@
 .admin-hero-copy { position: absolute; z-index: 1; top: 50%; left: 34px; color: #fff; transform: translateY(-50%); }
 .admin-hero-copy .eyebrow { color: #d8f3e5; }
 .admin-hero-copy h1 { margin: 0; color: #fff; font-family: 'Source Serif 4', Georgia, serif; font-size: clamp(1.8rem, 3vw, 2.8rem); }
-.admin-shell .page-heading { margin-bottom: 22px; }
+.admin-shell .page-heading { margin-bottom: 22px; padding: 0 4px; }
+.admin-shell .page-heading h2 { margin: 4px 0 6px; color: #efffff; font-family: 'Source Serif 4', Georgia, serif; font-size: clamp(1.45rem, 2.5vw, 2rem); }
+.admin-shell .eyebrow { margin-bottom: 4px; color: #71eef0; font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.admin-alerts { display: grid; gap: 10px; margin-bottom: 22px; }
+.admin-alerts:empty { display: none; }
+.admin-alerts .success-message, .admin-alerts .error-message { margin: 0; }
 .admin-shell h1 { margin-bottom: 8px; }
 .admin-page .page-heading p { color: #9fc1c7; }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 5%; border-bottom: 1px solid rgba(20, 36, 58, .12); background: #fff; }
@@ -23,6 +28,20 @@
 .admin-metric::after { position: absolute; right: -18px; bottom: -32px; width: 90px; height: 90px; border: 1px solid rgba(91, 227, 232, .2); border-radius: 50%; content: ''; }
 .admin-metric span, .admin-metric small { display: block; color: #9fc1c7; }
 .admin-metric strong { display: block; margin: 5px 0 2px; color: #71eef0; font-size: 2rem; line-height: 1; }
+.admin-actions-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 34px; }
+.admin-action-card { display: flex; min-height: 190px; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 22px; padding: 22px; border: 1px solid rgba(91, 227, 232, .18); border-radius: 8px; background: rgba(7, 27, 37, .84); box-shadow: 0 18px 44px rgba(0, 0, 0, .2); }
+.admin-section-heading { display: flex; align-items: flex-start; gap: 13px; }
+.admin-section-heading h2 { margin: 0 0 5px; color: #efffff; font-size: 1.15rem; }
+.admin-section-heading p { margin: 0; color: #9fc1c7; line-height: 1.5; }
+.admin-section-icon { display: grid; flex: 0 0 38px; place-items: center; height: 38px; border: 1px solid rgba(91, 227, 232, .35); border-radius: 8px; color: #71eef0; font-size: .68rem; font-weight: 800; letter-spacing: .04em; }
+.admin-schedule-form { display: flex; width: 100%; align-items: end; flex-wrap: wrap; gap: 12px; }
+.admin-schedule-form label { display: grid; flex: 1 1 130px; gap: 6px; color: #b7d7da; font-size: .82rem; font-weight: 700; }
+.admin-schedule-form input { width: 100%; padding: 10px 11px; border: 1px solid rgba(91, 227, 232, .22); border-radius: 5px; background: rgba(11, 37, 48, .78); color: #efffff; }
+.admin-schedule-form .btn { flex: 1 1 170px; }
+.admin-section { margin-top: 8px; }
+.queue-heading { margin-bottom: 18px; }
+.queue-heading .eyebrow { margin-bottom: 5px; }
+.queue-heading h2 { margin-bottom: 5px; }
 .admin-tab { padding: 10px 16px; border: 1px solid rgba(91, 227, 232, .2); border-radius: 6px; color: #b7d7da; text-decoration: none; background: rgba(11, 37, 48, .74); }
 .admin-tab:hover, .admin-tab:focus-visible { border-color: #5be3e8; color: #fff; }
 .admin-tab.active { border-color: #5be3e8; background: #159da5; color: #fff; box-shadow: 0 0 18px rgba(91, 227, 232, .2); }
@@ -63,8 +82,8 @@
 .admin-login-page .login-btn { border: 1px solid #5be3e8; background: #159da5; box-shadow: 0 0 18px rgba(91, 227, 232, .2); }
 .admin-login-page .switch-link, .admin-login-page .switch-link a { color: #9fc1c7; }
 .admin-login-page .switch-link a:hover { color: #71eef0; }
-@media (max-width: 900px) { .admin-metrics { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 700px) { .admin-hero img { height: 190px; } .admin-hero-copy { left: 22px; } .admin-metrics { grid-template-columns: 1fr; } .doctor-review-row { align-items: flex-start; flex-direction: column; } .doctor-review-actions { justify-content: flex-start; min-width: 0; } }
+@media (max-width: 900px) { .admin-metrics { grid-template-columns: repeat(2, 1fr); } .admin-actions-grid { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .admin-hero img { height: 190px; } .admin-hero-copy { left: 22px; } .admin-metrics { grid-template-columns: 1fr; } .doctor-review-row { align-items: flex-start; flex-direction: column; } .doctor-review-actions { justify-content: flex-start; min-width: 0; } .admin-shell { padding: 32px 16px 56px; } .admin-action-card { min-height: 0; } }
 * {
   margin: 0;
   padding: 0;
