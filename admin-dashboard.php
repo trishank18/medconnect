@@ -110,6 +110,7 @@ $stmt->execute($params);
 $doctors = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $counts = $conn->query('SELECT verification_status, COUNT(*) AS total FROM doctors GROUP BY verification_status')->fetchAll(PDO::FETCH_KEY_PAIR);
 $patientCount = (int) $conn->query('SELECT COUNT(*) FROM patients')->fetchColumn();
+$patients = $conn->query('SELECT id, fullname, email, username FROM patients ORDER BY fullname, id')->fetchAll(PDO::FETCH_ASSOC);
 function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
 ?>
 <!DOCTYPE html>
@@ -472,6 +473,55 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
       color: var(--mc-text-muted);
     }
 
+    .admin-danger-card {
+      border-color: #fecaca;
+    }
+
+    .admin-danger-card .admin-section-icon {
+      background: var(--mc-danger-bg);
+      color: #b91c1c;
+    }
+
+    .admin-delete-form {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .admin-delete-form label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--mc-text-muted);
+    }
+
+    .admin-delete-controls {
+      display: flex;
+      align-items: stretch;
+      gap: 0.75rem;
+    }
+
+    .admin-delete-controls select {
+      min-width: 0;
+      flex: 1;
+      padding: 0.7rem 0.8rem;
+      border: 1px solid var(--mc-border);
+      border-radius: var(--mc-radius-sm);
+      background: #fff;
+      color: var(--mc-text);
+      font: inherit;
+    }
+
+    .btn-danger {
+      background: #dc2626;
+    }
+
+    .btn-danger:hover {
+      background: #b91c1c;
+    }
+
+    .admin-empty-action {
+      padding: 0.8rem 0;
+    }
+
     /* Buttons */
     .btn {
       display: inline-flex;
@@ -743,6 +793,7 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
 
     /* Responsive */
     @media (max-width: 720px) {
+      .admin-delete-controls { flex-direction: column; }
       .topbar { padding: 0 1rem; }
       .admin-shell { padding: 1.25rem 1rem 3rem; }
       .admin-hero { min-height: 180px; }
@@ -791,7 +842,9 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
       <?php if (isset($_GET['updated'])): ?><p class="success-message">Doctor marked as <?= e($_GET['updated']) ?>.</p><?php endif; ?>
       <?php if (isset($_GET['exported'])): ?><p class="success-message">CSV files were saved in the exports folder.</p><?php endif; ?>
       <?php if (isset($_GET['bulk_appointments'])): ?><p class="success-message">Created <?= (int) $_GET['bulk_appointments'] ?> pending appointment(s) and assigned patients to approved doctors.</p><?php endif; ?>
-      <?php if (isset($_GET['error'])): ?><p class="error-message">The bulk appointment operation could not be completed. Check that the date is in the future and that approved doctors and patients exist.</p><?php endif; ?>
+      <?php if (isset($_GET['deleted_patient'])): ?><p class="success-message">Patient <?= e($_GET['deleted_patient']) ?> and all related records were deleted.</p><?php endif; ?>
+      <?php if (isset($_GET['error']) && in_array($_GET['error'], ['invalid_schedule', 'missing_doctors_or_patients', 'bulk_schedule_failed'], true)): ?><p class="error-message">The bulk appointment operation could not be completed. Check that the date is in the future and that approved doctors and patients exist.</p><?php endif; ?>
+      <?php if (isset($_GET['error']) && in_array($_GET['error'], ['invalid_patient', 'patient_not_found', 'patient_delete_failed'], true)): ?><p class="error-message">The patient could not be deleted. Confirm that the patient still exists and try again.</p><?php endif; ?>
     </div>
 
     <section class="admin-metrics" aria-label="Verification queue summary">
@@ -847,6 +900,31 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
           </label>
           <button class="btn" type="submit">Create appointments</button>
         </form>
+      </article>
+      <article class="admin-action-card admin-danger-card">
+        <div class="admin-section-heading">
+          <span class="admin-section-icon" aria-hidden="true">!</span>
+          <div>
+            <h2>Delete a patient</h2>
+            <p>Permanently removes the patient and their appointments, health metrics, suggestions, and prescriptions.</p>
+          </div>
+        </div>
+        <?php if ($patients): ?>
+          <form method="POST" action="admin-delete-patient.php" class="admin-delete-form" onsubmit="return confirm('This permanently deletes the patient and all related medical records. Continue?');">
+            <label for="patient_id">Select patient</label>
+            <div class="admin-delete-controls">
+              <select id="patient_id" name="patient_id" required>
+                <option value="">Choose a patient</option>
+                <?php foreach ($patients as $patient): ?>
+                  <option value="<?= (int) $patient['id'] ?>"><?= e($patient['fullname']) ?> — <?= e($patient['email']) ?> (ID <?= (int) $patient['id'] ?>)</option>
+                <?php endforeach; ?>
+              </select>
+              <button class="btn btn-danger" type="submit">Delete patient</button>
+            </div>
+          </form>
+        <?php else: ?>
+          <p class="admin-empty-action">There are no patients to delete.</p>
+        <?php endif; ?>
       </article>
     </section>
 
