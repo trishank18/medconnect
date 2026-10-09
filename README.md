@@ -50,6 +50,9 @@ MedConnect is a local IoT-enabled health-monitoring platform for patients, docto
 
 ## Architecture
 
+The complete component, data-flow, database, RAG, and connection diagrams are
+in [ARCHITECTURE.md](./ARCHITECTURE.md).
+
 The browser communicates with the PHP application, not directly with Gemini or the RAG service:
 
 ```text
@@ -373,7 +376,8 @@ medconnect/
 |-- save_data.php              ESP32 data endpoint
 |-- run-rag.cmd                Windows RAG startup helper
 |-- .env.example               Secret configuration template
-`-- README.md                  This guide
+|-- README.md                  This guide
+`-- ARCHITECTURE.md            Detailed architecture, connections, and RAG flow
 ```
 
 ## Deployment notes
