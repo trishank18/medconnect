@@ -6,6 +6,10 @@
 # Python generated files
 __pycache__/
 *.py[cod]
+python-rag/.venv/
+python-rag/data/
+python-rag/documents/*
+!python-rag/documents/.gitkeep
 
 # Database exports may contain personal health information
 exports/*.csv

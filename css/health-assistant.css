@@ -1,0 +1,25 @@
+.health-assistant {
+  position: fixed; z-index: 1050; right: 22px; bottom: 20px; width: min(390px, calc(100vw - 28px));
+  display: flex; flex-direction: column; max-height: min(620px, calc(100vh - 40px));
+  overflow: hidden; border: 1px solid #cbdedb; border-radius: 14px; background: #fff;
+  box-shadow: 0 16px 48px rgba(19, 55, 61, .2); color: #18333b; font: 14px/1.5 system-ui, sans-serif;
+}
+.health-assistant-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:#18333b; color:#fff; }
+.health-assistant-header h2 { margin:2px 0 0; color:inherit; font-size:17px; }
+.health-assistant-kicker { color:#9de3d8; font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+.health-assistant-status { width:9px; height:9px; border-radius:50%; background:#55d2a3; }
+.health-assistant-patient { display:grid; gap:4px; padding:10px 14px 0; font-size:12px; font-weight:600; }
+.health-assistant-patient select { width:100%; padding:7px; border:1px solid #cbdedb; border-radius:7px; }
+.health-assistant-messages { display:flex; flex:1; min-height:150px; flex-direction:column; gap:9px; overflow:auto; padding:14px; }
+.health-assistant-message { max-width:94%; white-space:pre-wrap; overflow-wrap:anywhere; padding:9px 11px; border-radius:11px; background:#edf5f3; }
+.health-assistant-message.user { align-self:flex-end; background:#168f83; color:#fff; }
+.health-assistant-message.error { background:#fff0ed; color:#8a2820; }
+.health-assistant-form { display:flex; gap:8px; padding:10px 12px; border-top:1px solid #e1ebe8; }
+.health-assistant-form input { min-width:0; flex:1; padding:10px; border:1px solid #cbdedb; border-radius:8px; }
+.health-assistant-form button { padding:0 14px; border:0; border-radius:8px; background:#168f83; color:white; font-weight:600; cursor:pointer; }
+.health-assistant-note { margin:0; padding:0 12px 10px; color:#5b7075; font-size:11px; }
+.health-assistant-close { border:0; background:transparent; color:#fff; font-size:25px; line-height:1; cursor:pointer; }
+.health-assistant-launcher { position:fixed; z-index:1049; right:22px; bottom:20px; display:none; padding:12px 17px; border:0; border-radius:24px; background:#168f83; color:white; box-shadow:0 8px 28px #18333b44; cursor:pointer; font-weight:600; }
+.health-assistant.is-closed { display:none; }
+.health-assistant-launcher.is-visible { display:block; }
+@media(max-width:600px) { .health-assistant { right:10px; bottom:10px; max-height:70vh; } }

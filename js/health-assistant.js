@@ -3,8 +3,16 @@
   const messagesElement = document.getElementById('healthAssistantMessages');
   const input = document.getElementById('healthAssistantInput');
   const submitButton = form?.querySelector('button[type="submit"]');
-  if (!form || !messagesElement || !input) return;
-
+  if (!form || !messagesElement || !input || form.dataset.bound === 'true') return;
+  form.dataset.bound = 'true';
+  const panel = form.closest('.health-assistant');
+  const launcher = document.getElementById('healthAssistantLauncher');
+  document.getElementById('healthAssistantClose')?.addEventListener('click', () => {
+    panel?.classList.add('is-closed'); launcher?.classList.add('is-visible');
+  });
+  launcher?.addEventListener('click', () => {
+    panel?.classList.remove('is-closed'); launcher.classList.remove('is-visible'); input.focus();
+  });
   const messages = [];
 
   function addMessage(text, role) {
@@ -16,36 +24,33 @@
     return message;
   }
 
-  form.addEventListener('submit', async function (event) {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const question = input.value.trim();
     if (!question || submitButton.disabled) return;
-
-    messages.push({ role: 'user', text: question });
     addMessage(question, 'user');
     input.value = '';
-    input.disabled = true;
-    submitButton.disabled = true;
-    const loadingMessage = addMessage('Thinking...', 'model loading');
-
+    input.disabled = submitButton.disabled = true;
+    const loading = addMessage('Looking that up…', 'model loading');
+    const patientId = document.getElementById('healthAssistantPatient')?.value || '';
     try {
-      const response = await fetch('gemini-chat.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messages.slice(-12) })
+      const response = await fetch(form.dataset.chatEndpoint || 'gemini-chat.php', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': form.dataset.csrf || '' },
+        body: JSON.stringify({ question, patient_id: patientId })
       });
       const data = await response.json();
-      loadingMessage.remove();
+      loading.remove();
       if (!response.ok) throw new Error(data.error || 'Unable to reach the assistant.');
-
-      messages.push({ role: 'model', text: data.reply });
-      addMessage(data.reply, 'model');
+      let reply = data.reply || 'No answer was returned.';
+      if (Array.isArray(data.sources) && data.sources.length) {
+        reply += '\n\nSources: ' + data.sources.map(s => `${s.document}${s.page ? `, p. ${s.page}` : ''}`).join('; ');
+      }
+      addMessage(reply, 'model');
     } catch (error) {
-      loadingMessage.textContent = error.message;
-      loadingMessage.classList.add('error');
+      loading.textContent = error.message;
+      loading.classList.add('error');
     } finally {
-      input.disabled = false;
-      submitButton.disabled = false;
+      input.disabled = submitButton.disabled = false;
       input.focus();
     }
   });

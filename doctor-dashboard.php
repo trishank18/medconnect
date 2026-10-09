@@ -945,6 +945,23 @@ try {
       });
     }
   </script>
+  <aside class="health-assistant" aria-label="MedConnect Health Assistant">
+    <div class="health-assistant-header"><div><span class="health-assistant-kicker">MedConnect AI</span><h2>Health Assistant</h2></div><span class="health-assistant-status" aria-label="Ready"></span><button type="button" class="health-assistant-close" id="healthAssistantClose" aria-label="Close health assistant">×</button></div>
+    <label class="health-assistant-patient">Patient readings
+      <select id="healthAssistantPatient" aria-label="Choose an assigned patient">
+        <option value="">Knowledge questions only</option>
+        <?php foreach ($patients as $assistantPatient): ?>
+          <option value="<?= (int)$assistantPatient['id'] ?>"><?= htmlspecialchars($assistantPatient['fullname'], ENT_QUOTES, 'UTF-8') ?> (ID <?= (int)$assistantPatient['id'] ?>)</option>
+        <?php endforeach; ?>
+      </select>
+    </label>
+    <div class="health-assistant-messages" id="healthAssistantMessages" aria-live="polite"><div class="health-assistant-message model">Ask about approved reference documents, or choose an assigned patient to ask about stored readings. Informational support only; not a diagnosis.</div></div>
+    <form id="healthAssistantForm" class="health-assistant-form" data-chat-endpoint="gemini-chat.php" data-csrf="<?= htmlspecialchars($_SESSION['assistant_csrf'] ??= bin2hex(random_bytes(32)), ENT_QUOTES, 'UTF-8') ?>"><label class="visually-hidden" for="healthAssistantInput">Ask the health assistant</label><input id="healthAssistantInput" name="question" maxlength="2000" autocomplete="off" placeholder="Ask a health question..." required><button type="submit" aria-label="Send question">Send</button></form>
+    <p class="health-assistant-note">For emergencies, use established clinical and emergency procedures.</p>
+  </aside>
+  <button type="button" class="health-assistant-launcher" id="healthAssistantLauncher" aria-label="Open health assistant">✚ <span>Health assistant</span></button>
+  <link rel="stylesheet" href="css/health-assistant.css">
+  <script src="js/health-assistant.js"></script>
   <script src="js/design-switch.js"></script>
 </body>
 </html>

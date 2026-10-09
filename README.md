@@ -86,7 +86,7 @@ GEMINI_API_KEY=your-gemini-api-key
 GEMINI_MODEL=gemini-2.0-flash
 ```
 
-The patient dashboard includes a health-information assistant powered by Gemini. Keep `GEMINI_API_KEY` server-side; it is never sent to the browser. The assistant provides general information only and is not a diagnostic or emergency service.
+Patient and doctor dashboards include an assistant backed by the local RAG service. It answers knowledge questions from approved indexed documents, with source/page references. Patient readings are queried from MySQL by the authenticated PHP bridge and are not sent to Gemini. See [python-rag/README.md](python-rag/README.md) for setup, ingestion, and the manual verification checklist. Keep `GEMINI_API_KEY` and `RAG_SERVICE_TOKEN` server-side.
 
 ## SMS password recovery
 

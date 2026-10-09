@@ -167,6 +167,7 @@ try {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="css/business.css">
+    <link rel="stylesheet" href="css/health-assistant.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-light">
@@ -478,18 +479,20 @@ try {
             <i class="bi bi-calendar2-plus" aria-hidden="true"></i>
             <span class="visually-hidden">Book an appointment</span>
         </a>
+        <button type="button" class="health-assistant-close" id="healthAssistantClose" aria-label="Close health assistant">×</button>
         <span class="health-assistant-status" aria-label="Ready"></span>
     </div>
     <div class="health-assistant-messages" id="healthAssistantMessages" aria-live="polite">
         <div class="health-assistant-message model">Hi <?= htmlspecialchars(explode(' ', $patient['fullname'])[0]) ?>. Ask me about your readings or general health information. I cannot diagnose or replace a clinician.</div>
     </div>
-    <form id="healthAssistantForm" class="health-assistant-form">
+    <form id="healthAssistantForm" class="health-assistant-form" data-chat-endpoint="gemini-chat.php" data-csrf="<?= htmlspecialchars($_SESSION['assistant_csrf'] ??= bin2hex(random_bytes(32)), ENT_QUOTES, 'UTF-8') ?>">
         <label class="visually-hidden" for="healthAssistantInput">Ask the health assistant</label>
         <input id="healthAssistantInput" name="question" maxlength="2000" autocomplete="off" placeholder="Ask a health question..." required>
         <button type="submit" aria-label="Send question"><i class="bi bi-arrow-up"></i></button>
     </form>
     <p class="health-assistant-note">For emergencies, contact local emergency services.</p>
 </aside>
+<button type="button" class="health-assistant-launcher" id="healthAssistantLauncher" aria-label="Open health assistant">✚ <span>Health assistant</span></button>
 
 <!-- View Profile Modal (NEW) -->
 <div class="modal fade" id="viewProfileModal" tabindex="-1" aria-hidden="true">
