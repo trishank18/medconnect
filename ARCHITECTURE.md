@@ -284,8 +284,19 @@ flowchart LR
 
 ## 7. Chunking in detail
 
-The current chunker uses character offsets so it works for both plain text and
-PDF-extracted text:
+Chunking converts an approved document into retrieval-sized passages. The
+following strategies are relevant to the MedConnect RAG design:
+
+### 7.1 Fixed-size chunking
+
+Splits text into uniform sizes based on character or token counts, often using
+an overlap to keep neighboring context intact. This is the strategy currently
+implemented by [`python-rag/chunking.py`](./python-rag/chunking.py). It is
+deterministic, fast, easy to test, and works consistently for TXT files and
+PDF-extracted text.
+
+The current configuration uses 900-character chunks and a 150-character
+overlap:
 
 ```text
 normalized document text
@@ -314,6 +325,56 @@ crosses a boundary. Each emitted chunk retains:
 - chunk index;
 - chunk text;
 - document metadata used to display citations.
+
+### 7.2 Recursive chunking
+
+Breaks text down hierarchically using a list of separators, such as headings,
+paragraphs, sentences, and finally words or characters, until the target size
+is reached. This is useful when a document has readable paragraph boundaries
+and fixed offsets would split a sentence or list item. A future implementation
+could use recursive chunking for longer technical guides while preserving
+page-level metadata.
+
+### 7.3 Structure-based chunking
+
+Divides documents using natural file markers such as Markdown headers, HTML
+tags, tables, or code blocks. This is useful for keeping a complete section,
+API example, schema definition, or procedure together. For MedConnect, the
+source document title, section heading, table, and page should be retained as
+metadata when this strategy is enabled.
+
+### 7.4 Semantic chunking
+
+Measures the meaning and similarity between neighboring sentences and splits
+when there is a major shift in topic. This can improve retrieval for documents
+that move between unrelated subjects without clear headings, but it requires
+additional sentence embedding work during ingestion and makes chunk boundaries
+less predictable.
+
+### 7.5 LLM-based or agentic chunking
+
+Uses an LLM or an agent to identify meaningful topic boundaries, summarize
+sections, or create task-oriented passages. This can be useful for complex
+clinical or technical references, but it adds cost, latency, provider
+dependency, and an additional data-processing trust boundary. It must never be
+allowed to process patient exports, credentials, or unrestricted database
+content.
+
+### 7.6 Strategy selection for MedConnect
+
+The production path currently uses **fixed-size overlapping chunking** because
+the approved corpus is small, local, and technical. The strategies above are
+design options, not claims that every strategy is active in the current code.
+A safe evolution path is:
+
+1. Start with fixed-size chunks as the deterministic baseline.
+2. Add recursive or structure-based boundaries for headings and paragraphs.
+3. Evaluate semantic chunking only if retrieval tests show topic-boundary
+   failures.
+4. Use LLM-based/agentic chunking only for reviewed public reference material,
+   with versioned outputs and an explicit approval step.
+5. Compare each change using the same question set, source hit rate, answer
+   grounding, and abstention behavior before changing the default.
 
 Chunking does not ingest MySQL rows, patient exports, `.env` files, or browser
 conversation history. To rebuild after an approved document changes:
