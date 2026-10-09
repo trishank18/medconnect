@@ -7,6 +7,11 @@ if (empty($_SESSION['admin_authenticated'])) {
     exit();
 }
 
+if (!isset($_SESSION['admin_csrf']) || !hash_equals($_SESSION['admin_csrf'], (string)($_POST['admin_csrf'] ?? ''))) {
+    header('Location: admin-dashboard.php?error=invalid_request');
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: admin-dashboard.php');
     exit();

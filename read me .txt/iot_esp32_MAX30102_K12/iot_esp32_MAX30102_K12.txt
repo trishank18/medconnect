@@ -9,6 +9,7 @@
 const char* ssid = "TRISHANK";
 const char* password = "YOUR_WIFI_PASSWORD";
 const char* serverUrl = "http://192.168.137.218/medconnect/save_data.php"; // Update IP if needed
+const char* deviceToken = "SET_DEVICE_INGEST_TOKEN";
 
 // LCD Connections (as per your table)
 const int rs = 21, en = 22, d4 = 16, d5 = 17, d6 = 18, d7 = 19;
@@ -124,16 +125,13 @@ float readThermistor(int pin) {
 // Send data to XAMPP server
 void sendToServer(int32_t bpm, int32_t spo2, float temp) {
     HTTPClient http;
-    String url = String(serverUrl) + 
-                 "?heart_rate=" + String(bpm) + 
-                 "&spo2=" + String(spo2) + 
-                 "&temperature=" + String(temp, 1); // 1 decimal place
-    
-    Serial.print("Sending: "); Serial.println(url);
-    http.begin(url);
+    http.begin(serverUrl);
     http.setTimeout(5000);
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    http.addHeader("X-MedConnect-Device-Token", deviceToken);
+    String body = "heart_rate=" + String(bpm) + "&spo2=" + String(spo2) + "&temperature=" + String(temp, 1);
 
-    int httpResponseCode = http.GET();
+    int httpResponseCode = http.POST(body);
     if (httpResponseCode > 0) {
         Serial.print("Server Response: "); Serial.println(http.getString());
     } else {

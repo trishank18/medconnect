@@ -7,6 +7,8 @@ if (empty($_SESSION['admin_authenticated'])) {
     exit();
 }
 
+$_SESSION['admin_csrf'] ??= bin2hex(random_bytes(32));
+
 $statusFilter = $_GET['status'] ?? 'pending';
 $allowedStatuses = ['pending', 'approved', 'rejected', 'all'];
 if (!in_array($statusFilter, $allowedStatuses, true)) {
@@ -911,6 +913,7 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
         </div>
         <?php if ($patients): ?>
           <form method="POST" action="admin-delete-patient.php" class="admin-delete-form" onsubmit="return confirm('This permanently deletes the patient and all related medical records. Continue?');">
+            <input type="hidden" name="admin_csrf" value="<?= htmlspecialchars($_SESSION['admin_csrf'], ENT_QUOTES, 'UTF-8') ?>">
             <label for="patient_id">Select patient</label>
             <div class="admin-delete-controls">
               <select id="patient_id" name="patient_id" required>

@@ -50,13 +50,23 @@ try {
             $stmt->execute();
             $doctor = $stmt->fetch(PDO::FETCH_ASSOC);
         } elseif (isset($_POST['add_prescription'])) {
-            $patient_id = $_POST['patient_id'];
-            $appointment_id = $_POST['appointment_id'];
+            $patient_id = filter_input(INPUT_POST, 'patient_id', FILTER_VALIDATE_INT);
+            $appointment_id = filter_input(INPUT_POST, 'appointment_id', FILTER_VALIDATE_INT);
             $prescription = $_POST['prescription'];
             $medication = $_POST['medication'] ?? '';
             $dosage = $_POST['dosage'] ?? '';
             $instructions = $_POST['instructions'] ?? '';
             
+            $authorizationStmt = $conn->prepare("SELECT 1 FROM appointments WHERE id = :appointment_id AND patient_id = :patient_id AND doctor_id = :doctor_id LIMIT 1");
+            $authorizationStmt->execute([
+              ':appointment_id' => $appointment_id,
+              ':patient_id' => $patient_id,
+              ':doctor_id' => $_SESSION['doctor_id'],
+            ]);
+            if (!$patient_id || !$appointment_id || !$authorizationStmt->fetchColumn()) {
+              header('Location: doctor-dashboard.php?error=unauthorized_patient');
+              exit();
+            }
             $insertStmt = $conn->prepare("INSERT INTO patient_prescriptions 
                 (doctor_id, patient_id, appointment_id, prescription, medication, dosage, instructions) 
                 VALUES (:doctor_id, :patient_id, :appointment_id, :prescription, :medication, :dosage, :instructions)");

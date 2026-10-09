@@ -1,6 +1,11 @@
 .git
 .gitignore
 .vscode
+.env
+.env.*
+!.env.example
+exports/*.csv
+exports/*.csv.tmp
 __pycache__
 *.pyc
 REPORT
