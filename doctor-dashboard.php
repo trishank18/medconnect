@@ -148,6 +148,14 @@ try {
         $stmt->bindParam(':patient_id', $patient['id']);
         $stmt->execute();
         $patient['health_history'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $predictionStmt = $conn->prepare("SELECT target_name, predicted_value, actual_value, model_version, prediction_timestamp, target_timestamp
+                FROM ml_predictions WHERE patient_id = :patient_id ORDER BY prediction_timestamp DESC LIMIT 5");
+            $predictionStmt->execute([':patient_id' => $patient['id']]);
+            $patient['ml_predictions'] = $predictionStmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $ignored) {
+            $patient['ml_predictions'] = [];
+        }
     }
     unset($patient); // Break the reference
 
@@ -178,6 +186,10 @@ try {
 } catch (PDOException $e) {
     die("Database error: " . $e->getMessage());
 }
+$mlHealthContext = stream_context_create(['http' => ['timeout' => 1, 'ignore_errors' => true]]);
+$mlHealth = @file_get_contents(rtrim(getenv('ML_API_URL') ?: 'http://127.0.0.1:8001', '/') . '/health', false, $mlHealthContext);
+$mlHealthData = is_string($mlHealth) ? json_decode($mlHealth, true) : null;
+$mlServiceAvailable = is_array($mlHealthData) && ($mlHealthData['status'] ?? '') === 'ok';
 ?>
 
 <!DOCTYPE html>
@@ -241,6 +253,9 @@ try {
         </div>
       </div>
     </div>
+
+    <div class="mb-3"><span class="badge <?= $mlServiceAvailable ? 'bg-success' : 'bg-secondary' ?>">ML service: <?= $mlServiceAvailable ? 'available' : 'unavailable' ?></span>
+      <span class="badge bg-light text-dark border">Sensor status: latest recorded measurement time is shown per patient</span></div>
 
     <!-- Stats Cards -->
     <div class="row mb-4">
@@ -416,6 +431,7 @@ try {
                   <th>Patient</th>
                   <th>Contact</th>
                   <th>Health Metrics</th>
+                  <th>Model estimates</th>
                   <th>Last Updated</th>
                 </tr>
               </thead>
@@ -452,6 +468,16 @@ try {
                           <span class="badge bg-secondary">BP: <?= "{$p['blood_pressure_sys']}/{$p['blood_pressure_dia']}" ?></span>
                         <?php endif; ?>
                       </div>
+                    </td>
+                    <td>
+                      <?php if (!empty($p['ml_predictions'])): ?>
+                        <div class="small text-muted mb-1">Experimental only</div>
+                        <?php foreach ($p['ml_predictions'] as $estimate): ?>
+                          <div><strong><?= htmlspecialchars(str_replace('_', ' ', $estimate['target_name'])) ?>:</strong>
+                            <?= htmlspecialchars((string) $estimate['predicted_value']) ?> <?= htmlspecialchars(['heart_rate'=>'BPM','spo2'=>'%','temperature'=>'°C','blood_pressure_sys'=>'mmHg','blood_pressure_dia'=>'mmHg'][$estimate['target_name']] ?? '') ?> <span class="text-muted">predicted</span><?php if ($estimate['actual_value'] !== null): ?> · actual <?= htmlspecialchars((string) $estimate['actual_value']) ?><?php endif; ?></div>
+                        <?php endforeach; ?>
+                        <div class="small text-muted">Created <?= htmlspecialchars($p['ml_predictions'][0]['prediction_timestamp']) ?> · target <?= htmlspecialchars($p['ml_predictions'][0]['target_timestamp'] ?? 'unspecified') ?> · <?= htmlspecialchars($p['ml_predictions'][0]['model_version']) ?></div>
+                      <?php else: ?><span class="text-muted small">No estimate</span><?php endif; ?>
                     </td>
                     <td>
                       <?= $p['recorded_at'] ? date("M j, Y H:i", strtotime($p['recorded_at'])) : 'N/A' ?>

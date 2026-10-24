@@ -94,6 +94,10 @@ try {
     } else {
         $pressureTone = 'metric-neutral';
     }
+    $mlHealthContext = stream_context_create(['http' => ['timeout' => 1, 'ignore_errors' => true]]);
+    $mlHealth = @file_get_contents(rtrim(getenv('ML_API_URL') ?: 'http://127.0.0.1:8001', '/') . '/health', false, $mlHealthContext);
+    $mlHealthData = is_string($mlHealth) ? json_decode($mlHealth, true) : null;
+    $mlServiceAvailable = is_array($mlHealthData) && ($mlHealthData['status'] ?? '') === 'ok';
 
     // Fetch the complete history so the patient can review every recorded reading.
     $history_stmt = $conn->prepare("
@@ -105,6 +109,18 @@ try {
     $history_stmt->bindParam(':patient_id', $_SESSION['patient_id']);
     $history_stmt->execute();
     $metrics_history = $history_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $mlPredictions = [];
+    try {
+        $predictionStmt = $conn->prepare("SELECT target_name, predicted_value, actual_value, model_version, prediction_timestamp, target_timestamp
+            FROM ml_predictions WHERE patient_id = :patient_id ORDER BY prediction_timestamp DESC LIMIT 10");
+        $predictionStmt->execute([':patient_id' => $_SESSION['patient_id']]);
+        $mlPredictions = $predictionStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $ignored) {
+        // Keep the core dashboard usable until the optional predictions migration is applied.
+    }
+    $heartRateComparisons = array_reverse(array_values(array_filter($mlPredictions, static fn($row) =>
+        $row['target_name'] === 'heart_rate' && $row['actual_value'] !== null)));
 
     // Prepare data for Chart.js in chronological order.
     $chart_labels = [];
@@ -219,6 +235,10 @@ try {
     <?php endif; ?>
 
     <!-- Health Metrics Display (unchanged) -->
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <span class="badge <?= $mlServiceAvailable ? 'bg-success' : 'bg-secondary' ?>">ML service: <?= $mlServiceAvailable ? 'available' : 'unavailable' ?></span>
+        <span class="badge bg-light text-dark border">Sensor data freshness: <?= !empty($metrics['recorded_at']) ? 'last reported ' . htmlspecialchars($metrics['recorded_at']) : 'no readings recorded' ?></span>
+    </div>
     <h4 class="mb-3">🩺 Latest Health Metrics</h4>
     <div class="row">
         <div class="col-md-4 mb-3">
@@ -266,6 +286,28 @@ try {
             </div>
         </div>
     </div>
+
+    <section class="card shadow-sm border-0 my-4" aria-labelledby="ml-predictions-title">
+        <div class="card-header bg-white"><h3 class="h5 mb-0" id="ml-predictions-title">Experimental model estimates</h3></div>
+        <div class="card-body">
+            <p class="small text-muted">Estimates are not sensor readings or diagnoses. Actual values above remain recorded measurements.</p>
+            <?php if ($mlPredictions): ?>
+                <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Target</th><th>Predicted value</th><th>Created</th><th>Expected target</th><th>Model</th></tr></thead><tbody>
+                <?php foreach ($mlPredictions as $prediction): ?>
+                    <tr><td><?= htmlspecialchars(str_replace('_', ' ', $prediction['target_name'])) ?></td>
+                        <td><?= htmlspecialchars((string) $prediction['predicted_value']) ?> <?= htmlspecialchars(['heart_rate'=>'BPM','spo2'=>'%','temperature'=>'°C','blood_pressure_sys'=>'mmHg','blood_pressure_dia'=>'mmHg'][$prediction['target_name']] ?? '') ?> <span class="text-muted small">(predicted)</span><?php if ($prediction['actual_value'] !== null): ?><br><?= htmlspecialchars((string) $prediction['actual_value']) ?> <span class="text-muted small">(actual)</span><?php endif; ?></td>
+                        <td><?= htmlspecialchars($prediction['prediction_timestamp']) ?></td>
+                        <td><?= htmlspecialchars($prediction['target_timestamp'] ?? 'Not supplied') ?></td>
+                        <td><?= htmlspecialchars($prediction['model_version']) ?></td></tr>
+                <?php endforeach; ?>
+                </tbody></table></div>
+            <?php else: ?><p class="mb-0 text-muted">No model estimates yet. They appear after a reading is saved while the ML service is available.</p><?php endif; ?>
+        </div>
+    </section>
+
+    <?php if ($heartRateComparisons): ?>
+      <div class="card shadow-sm border-0 mb-4"><div class="card-header bg-white"><h3 class="h6 mb-0">Heart rate: recorded versus estimated</h3></div><div class="card-body"><canvas id="mlComparisonChart" aria-label="Actual and predicted heart rate comparison"></canvas></div></div>
+    <?php endif; ?>
 
     <!-- Rest of the content remains unchanged -->
     <div class="mb-4">
@@ -717,6 +759,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 </script>
+<?php if ($heartRateComparisons): ?>
+<script>
+const comparisonRows = <?= json_encode($heartRateComparisons, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+new Chart(document.getElementById('mlComparisonChart'), {
+  type: 'line',
+  data: { labels: comparisonRows.map(row => row.target_timestamp), datasets: [
+    { label: 'Predicted heart rate', data: comparisonRows.map(row => Number(row.predicted_value)), borderColor: '#7b61a8', tension: .2 },
+    { label: 'Actual recorded heart rate', data: comparisonRows.map(row => Number(row.actual_value)), borderColor: '#dc3545', tension: .2 }
+  ] }, options: { responsive: true, interaction: { mode: 'index', intersect: false } }
+});
+</script>
+<?php endif; ?>
     <script src="js/design-switch.js"></script>
     <script src="js/health-assistant.js"></script>
 </body>

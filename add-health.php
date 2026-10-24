@@ -35,6 +35,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':blood_pressure_sys' => $values['blood_pressure_sys'],
                 ':blood_pressure_dia' => $values['blood_pressure_dia']
             ]);
+
+            // Attach an observed future value only to due predictions for this patient and target.
+            try {
+                $reconcile = $conn->prepare("UPDATE ml_predictions SET actual_value = :actual_value
+                    WHERE patient_id = :patient_id AND target_name = :target_name AND actual_value IS NULL
+                      AND target_timestamp <= NOW() AND target_timestamp >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+                foreach ($values as $target => $actualValue) {
+                    $reconcile->execute([':actual_value' => $actualValue, ':patient_id' => $_SESSION['patient_id'], ':target_name' => $target]);
+                }
+            } catch (PDOException $ignored) {
+                // Prediction reconciliation is optional; preserve actual reading ingestion on failure.
+            }
+
+            // Actual measurement is committed first. Predictions are best-effort and stored separately.
+            $modelInputs = [
+                'heart_rate' => (float) $values['heart_rate'],
+                'spo2' => (float) $values['spo2'],
+                'temperature' => (float) $values['temperature'],
+                'blood_pressure_sys' => (float) $values['blood_pressure_sys'],
+                'blood_pressure_dia' => (float) $values['blood_pressure_dia'],
+            ];
+            $apiUrl = rtrim(getenv('ML_API_URL') ?: 'http://127.0.0.1:8001', '/');
+            foreach (array_keys($modelInputs) as $target) {
+                $features = array_intersect_key($modelInputs, array_flip(['heart_rate', 'spo2', 'temperature']));
+                unset($features[$target]); // The target value is never passed as its own predictor.
+                $headers = "Content-Type: application/json\r\n";
+                $apiToken = getenv('ML_API_TOKEN');
+                if ($apiToken) $headers .= 'X-ML-Token: ' . $apiToken . "\r\n";
+                $context = stream_context_create(['http' => [
+                    'method' => 'POST', 'header' => $headers,
+                    'content' => json_encode(['target_name' => $target, 'features' => $features]),
+                    'timeout' => 2, 'ignore_errors' => true,
+                ]]);
+                $response = @file_get_contents($apiUrl . '/predict', false, $context);
+                if ($response === false) continue;
+                $prediction = json_decode($response, true);
+                if (!is_array($prediction) || !isset($prediction['predicted_value'], $prediction['model_version'])) continue;
+                try {
+                    $predictionStmt = $conn->prepare(
+                        'INSERT INTO ml_predictions (patient_id, target_name, predicted_value, model_version, prediction_timestamp, target_timestamp)
+                         VALUES (:patient_id, :target_name, :predicted_value, :model_version, :prediction_timestamp, :target_timestamp)'
+                    );
+                    $predictionStmt->execute([
+                        ':patient_id' => $_SESSION['patient_id'], ':target_name' => $target,
+                        ':predicted_value' => $prediction['predicted_value'], ':model_version' => $prediction['model_version'],
+                        ':prediction_timestamp' => date('Y-m-d H:i:s'), ':target_timestamp' => $prediction['target_timestamp'] ?? null,
+                    ]);
+                } catch (PDOException $ignored) {
+                    // Prediction persistence must not undo an actual health reading.
+                }
+            }
             header('Location: patient-dashboard.php?health_saved=1');
             exit();
         } catch (PDOException $exception) {

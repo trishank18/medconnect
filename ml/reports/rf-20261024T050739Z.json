@@ -1,0 +1,387 @@
+{
+  "model_version": "rf-20261024T050739Z",
+  "dataset_version": "f796dd375b9a",
+  "dataset_analysis": {
+    "filename": "iot_health_monitoring_dataset.csv",
+    "rows": 5094,
+    "columns": [
+      "timestamp",
+      "device_id",
+      "patient_id",
+      "heart_rate",
+      "blood_oxygen",
+      "blood_pressure_systolic",
+      "blood_pressure_diastolic",
+      "glucose_level",
+      "body_temperature",
+      "respiratory_rate",
+      "activity_level",
+      "sleep_quality",
+      "stress_level",
+      "hrv_sdnn",
+      "steps_count",
+      "calories_burned",
+      "health_event"
+    ],
+    "derived_schema_columns": [
+      "spo2",
+      "blood_pressure_sys",
+      "blood_pressure_dia",
+      "temperature"
+    ],
+    "dtypes": {
+      "timestamp": "str",
+      "device_id": "str",
+      "patient_id": "str",
+      "heart_rate": "float64",
+      "blood_oxygen": "float64",
+      "blood_pressure_systolic": "float64",
+      "blood_pressure_diastolic": "float64",
+      "glucose_level": "float64",
+      "body_temperature": "float64",
+      "respiratory_rate": "float64",
+      "activity_level": "float64",
+      "sleep_quality": "float64",
+      "stress_level": "float64",
+      "hrv_sdnn": "float64",
+      "steps_count": "int64",
+      "calories_burned": "int64",
+      "health_event": "int64"
+    },
+    "missing": {
+      "timestamp": 0,
+      "device_id": 0,
+      "patient_id": 0,
+      "heart_rate": 0,
+      "blood_oxygen": 0,
+      "blood_pressure_systolic": 0,
+      "blood_pressure_diastolic": 0,
+      "glucose_level": 0,
+      "body_temperature": 0,
+      "respiratory_rate": 0,
+      "activity_level": 0,
+      "sleep_quality": 0,
+      "stress_level": 0,
+      "hrv_sdnn": 0,
+      "steps_count": 0,
+      "calories_burned": 0,
+      "health_event": 0
+    },
+    "duplicate_rows": 0,
+    "sample": [
+      {
+        "timestamp": "2025-09-30 13:06:45.056387",
+        "device_id": "DEVICE_0040",
+        "patient_id": "PATIENT_0310",
+        "heart_rate": 88.7,
+        "blood_oxygen": 91.9,
+        "blood_pressure_systolic": 178.0,
+        "blood_pressure_diastolic": 100.0,
+        "glucose_level": 131.1,
+        "body_temperature": 97.66,
+        "respiratory_rate": 23.3,
+        "activity_level": 0.486,
+        "sleep_quality": 0.215,
+        "stress_level": 0.778,
+        "hrv_sdnn": 12.7,
+        "steps_count": 2189,
+        "calories_burned": 2033,
+        "health_event": 3
+      },
+      {
+        "timestamp": "2025-09-30 13:30:45.056387",
+        "device_id": "DEVICE_0078",
+        "patient_id": "PATIENT_0147",
+        "heart_rate": 82.3,
+        "blood_oxygen": 96.5,
+        "blood_pressure_systolic": 122.0,
+        "blood_pressure_diastolic": 82.0,
+        "glucose_level": 57.7,
+        "body_temperature": 98.89,
+        "respiratory_rate": 19.9,
+        "activity_level": 0.65,
+        "sleep_quality": 0.671,
+        "stress_level": 0.296,
+        "hrv_sdnn": 58.1,
+        "steps_count": 11342,
+        "calories_burned": 2634,
+        "health_event": 0
+      },
+      {
+        "timestamp": "2025-09-30 13:46:45.056387",
+        "device_id": "DEVICE_0013",
+        "patient_id": "PATIENT_0129",
+        "heart_rate": 101.7,
+        "blood_oxygen": 91.3,
+        "blood_pressure_systolic": 139.0,
+        "blood_pressure_diastolic": 102.0,
+        "glucose_level": 143.4,
+        "body_temperature": 98.89,
+        "respiratory_rate": 26.5,
+        "activity_level": 0.49,
+        "sleep_quality": 0.395,
+        "stress_level": 0.772,
+        "hrv_sdnn": 17.2,
+        "steps_count": 3456,
+        "calories_burned": 2157,
+        "health_event": 3
+      },
+      {
+        "timestamp": "2025-09-30 13:48:45.056387",
+        "device_id": "DEVICE_0085",
+        "patient_id": "PATIENT_0470",
+        "heart_rate": 73.9,
+        "blood_oxygen": 98.3,
+        "blood_pressure_systolic": 121.0,
+        "blood_pressure_diastolic": 88.0,
+        "glucose_level": 108.5,
+        "body_temperature": 98.73,
+        "respiratory_rate": 16.5,
+        "activity_level": 0.445,
+        "sleep_quality": 0.707,
+        "stress_level": 0.339,
+        "hrv_sdnn": 97.2,
+        "steps_count": 8300,
+        "calories_burned": 1631,
+        "health_event": 0
+      },
+      {
+        "timestamp": "2025-09-30 14:15:45.056387",
+        "device_id": "DEVICE_0055",
+        "patient_id": "PATIENT_0245",
+        "heart_rate": 75.7,
+        "blood_oxygen": 93.0,
+        "blood_pressure_systolic": 109.0,
+        "blood_pressure_diastolic": 81.0,
+        "glucose_level": 109.2,
+        "body_temperature": 98.74,
+        "respiratory_rate": 14.2,
+        "activity_level": 0.612,
+        "sleep_quality": 0.844,
+        "stress_level": 0.197,
+        "hrv_sdnn": 64.1,
+        "steps_count": 7337,
+        "calories_burned": 2498,
+        "health_event": 0
+      }
+    ],
+    "patient_count": 500,
+    "device_count": 200,
+    "rows_per_patient": {
+      "count": 500.0,
+      "mean": 10.188,
+      "std": 3.0415716852695196,
+      "min": 3.0,
+      "25%": 8.0,
+      "50%": 10.0,
+      "75%": 12.0,
+      "max": 20.0
+    },
+    "rows_per_device": {
+      "count": 200.0,
+      "mean": 25.47,
+      "std": 5.10287139583314,
+      "min": 10.0,
+      "25%": 22.0,
+      "50%": 25.0,
+      "75%": 29.0,
+      "max": 42.0
+    },
+    "time_range": [
+      "2025-09-30 13:06:45.056387",
+      "2025-10-30 13:04:45.056387"
+    ],
+    "targets": {
+      "heart_rate": {
+        "source_column": "heart_rate",
+        "unit": "bpm",
+        "present": true
+      },
+      "spo2": {
+        "source_column": "blood_oxygen",
+        "unit": "%",
+        "present": true
+      },
+      "blood_pressure_sys": {
+        "source_column": "blood_pressure_systolic",
+        "unit": "mmHg",
+        "present": true
+      },
+      "blood_pressure_dia": {
+        "source_column": "blood_pressure_diastolic",
+        "unit": "mmHg",
+        "present": true
+      },
+      "temperature": {
+        "source_column": "body_temperature",
+        "unit": "Fahrenheit converted to Celsius",
+        "present": true
+      }
+    }
+  },
+  "objective": "next observed reading for same patient within 24 hours; chronological holdout",
+  "models": {
+    "heart_rate": {
+      "status": "trained",
+      "features": [
+        "spo2",
+        "temperature"
+      ],
+      "target": "heart_rate",
+      "train_records": 1004,
+      "validation_records": 215,
+      "test_records": 216,
+      "validation_mae": 12.7012,
+      "test": {
+        "mae": 13.2394,
+        "rmse": 18.3804,
+        "r2": -0.0598
+      },
+      "baseline_persistence_test": {
+        "mae": 17.1597,
+        "rmse": 24.0478,
+        "r2": -0.8142
+      },
+      "hyperparameters": {
+        "max_depth": 12,
+        "min_samples_leaf": 3,
+        "n_estimators": 400
+      },
+      "target_interval_seconds": {
+        "median": 38820.0,
+        "max": 86400
+      },
+      "artifact": "models/heart_rate.joblib"
+    },
+    "spo2": {
+      "status": "trained",
+      "features": [
+        "heart_rate",
+        "temperature"
+      ],
+      "target": "spo2",
+      "train_records": 1004,
+      "validation_records": 215,
+      "test_records": 216,
+      "validation_mae": 1.5481,
+      "test": {
+        "mae": 1.5518,
+        "rmse": 1.9854,
+        "r2": -0.1483
+      },
+      "baseline_persistence_test": {
+        "mae": 2.0421,
+        "rmse": 2.6044,
+        "r2": -0.9761
+      },
+      "hyperparameters": {
+        "max_depth": 12,
+        "min_samples_leaf": 3,
+        "n_estimators": 200
+      },
+      "target_interval_seconds": {
+        "median": 38820.0,
+        "max": 86400
+      },
+      "artifact": "models/spo2.joblib"
+    },
+    "temperature": {
+      "status": "trained",
+      "features": [
+        "heart_rate",
+        "spo2"
+      ],
+      "target": "temperature",
+      "train_records": 1004,
+      "validation_records": 215,
+      "test_records": 216,
+      "validation_mae": 0.233,
+      "test": {
+        "mae": 0.2514,
+        "rmse": 0.3257,
+        "r2": -0.1787
+      },
+      "baseline_persistence_test": {
+        "mae": 0.3447,
+        "rmse": 0.4348,
+        "r2": -1.1008
+      },
+      "hyperparameters": {
+        "max_depth": 12,
+        "min_samples_leaf": 3,
+        "n_estimators": 400
+      },
+      "target_interval_seconds": {
+        "median": 38820.0,
+        "max": 86400
+      },
+      "artifact": "models/temperature.joblib"
+    },
+    "blood_pressure_sys": {
+      "status": "trained",
+      "features": [
+        "heart_rate",
+        "spo2",
+        "temperature"
+      ],
+      "target": "blood_pressure_sys",
+      "train_records": 1004,
+      "validation_records": 215,
+      "test_records": 216,
+      "validation_mae": 8.6377,
+      "test": {
+        "mae": 10.0373,
+        "rmse": 14.6076,
+        "r2": -0.0432
+      },
+      "baseline_persistence_test": {
+        "mae": 13.287,
+        "rmse": 19.3652,
+        "r2": -0.8334
+      },
+      "hyperparameters": {
+        "max_depth": 12,
+        "min_samples_leaf": 3,
+        "n_estimators": 400
+      },
+      "target_interval_seconds": {
+        "median": 38820.0,
+        "max": 86400
+      },
+      "artifact": "models/blood_pressure_sys.joblib"
+    },
+    "blood_pressure_dia": {
+      "status": "trained",
+      "features": [
+        "heart_rate",
+        "spo2",
+        "temperature"
+      ],
+      "target": "blood_pressure_dia",
+      "train_records": 1004,
+      "validation_records": 215,
+      "test_records": 216,
+      "validation_mae": 6.4978,
+      "test": {
+        "mae": 6.6043,
+        "rmse": 9.1679,
+        "r2": -0.0479
+      },
+      "baseline_persistence_test": {
+        "mae": 9.1435,
+        "rmse": 12.7325,
+        "r2": -1.0212
+      },
+      "hyperparameters": {
+        "max_depth": 12,
+        "min_samples_leaf": 3,
+        "n_estimators": 400
+      },
+      "target_interval_seconds": {
+        "median": 38820.0,
+        "max": 86400
+      },
+      "artifact": "models/blood_pressure_dia.joblib"
+    }
+  }
+}

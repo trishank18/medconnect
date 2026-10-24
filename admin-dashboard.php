@@ -9,6 +9,17 @@ if (empty($_SESSION['admin_authenticated'])) {
 
 $_SESSION['admin_csrf'] ??= bin2hex(random_bytes(32));
 
+$mlEvaluation = null;
+$mlLatestPath = __DIR__ . '/ml/models/latest.json';
+if (is_file($mlLatestPath)) {
+    $latest = json_decode((string) file_get_contents($mlLatestPath), true);
+    $relativeReport = $latest['report'] ?? '';
+    if (is_string($relativeReport) && preg_match('#^reports/rf-[A-Za-z0-9T_-]+\.json$#', $relativeReport)) {
+        $reportPath = __DIR__ . '/ml/' . $relativeReport;
+        if (is_file($reportPath)) $mlEvaluation = json_decode((string) file_get_contents($reportPath), true);
+    }
+}
+
 $statusFilter = $_GET['status'] ?? 'pending';
 $allowedStatuses = ['pending', 'approved', 'rejected', 'all'];
 if (!in_array($statusFilter, $allowedStatuses, true)) {
@@ -839,6 +850,22 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
         <p>Review clinician applications, assign patients, and export your records from one workspace.</p>
       </div>
     </div>
+
+    <section class="card border-0 shadow-sm my-4" aria-labelledby="ml-model-admin-heading">
+      <div class="card-body">
+        <h2 class="h5" id="ml-model-admin-heading">Experimental ML evaluation (administrator)</h2>
+        <?php if ($mlEvaluation): ?>
+          <p class="small text-muted">Model <?= e($mlEvaluation['model_version'] ?? 'unknown') ?> · dataset <?= e($mlEvaluation['dataset_version'] ?? 'unknown') ?>. Chronological next-reading holdout; not clinical validation.</p>
+          <div class="table-responsive"><table class="table table-sm"><thead><tr><th>Target</th><th>Status</th><th>Train / validation / test</th><th>Test MAE</th><th>RMSE</th><th>R²</th></tr></thead><tbody>
+          <?php foreach (($mlEvaluation['models'] ?? []) as $target => $evaluation): ?>
+            <tr><td><?= e(str_replace('_', ' ', $target)) ?></td><td><?= e($evaluation['status'] ?? 'unavailable') ?></td>
+              <?php if (($evaluation['status'] ?? '') === 'trained'): ?><td><?= (int) $evaluation['train_records'] ?> / <?= (int) $evaluation['validation_records'] ?> / <?= (int) $evaluation['test_records'] ?></td><td><?= e((string) $evaluation['test']['mae']) ?></td><td><?= e((string) $evaluation['test']['rmse']) ?></td><td><?= e((string) $evaluation['test']['r2']) ?></td>
+              <?php else: ?><td colspan="4"><?= e($evaluation['reason'] ?? 'No supported model') ?></td><?php endif; ?></tr>
+          <?php endforeach; ?>
+          </tbody></table></div>
+        <?php else: ?><p class="mb-0 text-muted">No model evaluation report is available yet.</p><?php endif; ?>
+      </div>
+    </section>
 
     <div class="admin-alerts" aria-live="polite">
       <?php if (isset($_GET['updated'])): ?><p class="success-message">Doctor marked as <?= e($_GET['updated']) ?>.</p><?php endif; ?>
