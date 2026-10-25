@@ -1,4 +1,4 @@
-create database medconnect;
+create database if not exists medconnect;
 use medconnect;
 -- Doctors table
 CREATE TABLE `doctors` (
@@ -112,7 +112,8 @@ CREATE TABLE `password_reset_otps` (
   KEY `account_lookup` (`role`, `account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Administrator credentials. The initial username is Sunny and the initial password is Sunny33@.
+-- Administrator credentials are initialized from server-only ADMIN_USERNAME and
+-- ADMIN_PASSWORD_HASH settings on first admin login. Existing credentials are preserved.
 CREATE TABLE IF NOT EXISTS `admin_credentials` (
   `id` tinyint unsigned NOT NULL,
   `username` varchar(50) NOT NULL,
@@ -122,14 +123,9 @@ CREATE TABLE IF NOT EXISTS `admin_credentials` (
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `admin_credentials` (`id`, `username`, `password_hash`)
-VALUES (1, 'Sunny', '$2y$10$HE7C1qay5QOO64bfjHUWj.ekj7BsicZjntkcDBrcamee3iFtBxcmy')
-ON DUPLICATE KEY UPDATE
-  `username` = VALUES(`username`),
-  `password_hash` = VALUES(`password_hash`);
-
--- Seed accounts: password for every account is Sunny.
--- Rerunning this section updates the existing seeded accounts instead of duplicating them.
+-- Local demonstration accounts only. These fixtures use a shared test password;
+-- do not install or expose them as production accounts.
+-- Re-running the script leaves existing fixture accounts untouched.
 SET @seed_password_hash = '$2y$10$sVtK1y05Jsk4hSsG5krjUOcDJW3c4loF13byj7Up.Z8fFoDdzxe1S';
 
 INSERT INTO `doctors` (`fullname`, `email`, `phone`, `department`, `username`, `password`, `verification_status`)
@@ -162,12 +158,7 @@ FROM (
      UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) AS ones
   WHERE hundreds.n * 100 + tens.n * 10 + ones.n BETWEEN 1 AND 102
 ) AS numbers
-ON DUPLICATE KEY UPDATE
-  `fullname` = VALUES(`fullname`),
-  `phone` = VALUES(`phone`),
-  `department` = VALUES(`department`),
-  `password` = VALUES(`password`),
-  `verification_status` = 'approved';
+ON DUPLICATE KEY UPDATE `id` = `id`;
 
 INSERT INTO `patients` (`fullname`, `email`, `phone`, `age`, `username`, `password`)
 SELECT
@@ -195,31 +186,9 @@ FROM (
      UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) AS ones
   WHERE hundreds.n * 100 + tens.n * 10 + ones.n BETWEEN 1 AND 103
 ) AS numbers
-ON DUPLICATE KEY UPDATE
-  `fullname` = VALUES(`fullname`),
-  `phone` = VALUES(`phone`),
-  `age` = VALUES(`age`),
-  `password` = VALUES(`password`);
+ON DUPLICATE KEY UPDATE `id` = `id`;
 
--- Add one current health reading for each seeded patient that has no readings yet.
-INSERT INTO `health_metrics`
-  (`patient_id`, `heart_rate`, `spo2`, `temperature`, `blood_pressure_sys`, `blood_pressure_dia`)
-SELECT
-  p.`id`,
-  68 + MOD(p.`id`, 23),
-  96 + MOD(p.`id`, 4),
-  36.4 + (MOD(p.`id`, 5) * 0.1),
-  108 + MOD(p.`id`, 18),
-  68 + MOD(p.`id`, 12)
-FROM `patients` AS p
-WHERE p.`username` REGEXP '^pat[0-9]+$'
-  AND NOT EXISTS (
-    SELECT 1
-    FROM `health_metrics` AS hm
-    WHERE hm.`patient_id` = p.`id`
-  );
-
--- Add 1,000 more patients (pat104 through pat1103) with complete health data.
+-- Additional local demonstration accounts; no health readings are generated.
 SET @seed_password_hash = '$2y$10$sVtK1y05Jsk4hSsG5krjUOcDJW3c4loF13byj7Up.Z8fFoDdzxe1S';
 
 INSERT INTO `patients` (`fullname`, `email`, `phone`, `age`, `username`, `password`)
@@ -251,62 +220,4 @@ FROM (
      UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) AS ones
   WHERE thousands.n * 1000 + hundreds.n * 100 + tens.n * 10 + ones.n BETWEEN 104 AND 1103
 ) AS numbers
-ON DUPLICATE KEY UPDATE
-  `fullname` = VALUES(`fullname`),
-  `phone` = VALUES(`phone`),
-  `age` = VALUES(`age`),
-  `password` = VALUES(`password`);
-
-INSERT INTO `health_metrics`
-  (`patient_id`, `heart_rate`, `spo2`, `temperature`, `blood_pressure_sys`, `blood_pressure_dia`)
-SELECT
-  p.`id`,
-  68 + MOD(p.`id`, 23),
-  96 + MOD(p.`id`, 4),
-  36.4 + (MOD(p.`id`, 5) * 0.1),
-  108 + MOD(p.`id`, 18),
-  68 + MOD(p.`id`, 12)
-FROM `patients` AS p
-WHERE p.`username` LIKE 'pat%'
-  AND CAST(SUBSTRING(p.`username`, 4) AS UNSIGNED) BETWEEN 104 AND 1103
-  AND NOT EXISTS (
-    SELECT 1
-    FROM `health_metrics` AS hm
-    WHERE hm.`patient_id` = p.`id`
-  );
-
--- Ensure every seeded patient has 100 readings in total.
--- Change @health_readings_per_patient to any value from 100 to 200 as needed.
-SET @health_readings_per_patient = 100;
-
-INSERT INTO `health_metrics`
-  (`patient_id`, `heart_rate`, `spo2`, `temperature`, `blood_pressure_sys`, `blood_pressure_dia`, `recorded_at`)
-SELECT
-  p.`id`,
-  68 + MOD(p.`id` + readings.n * 3, 23),
-  96 + MOD(p.`id` + readings.n, 4),
-  36.4 + (MOD(p.`id` + readings.n, 5) * 0.1),
-  108 + MOD(p.`id` + readings.n * 2, 18),
-  68 + MOD(p.`id` + readings.n * 2, 12),
-  DATE_SUB(NOW(), INTERVAL (@health_readings_per_patient - readings.n) HOUR)
-FROM `patients` AS p
-JOIN (
-  SELECT ones.n + tens.n * 10 + hundreds.n * 100 AS n
-  FROM
-    (SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
-     UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) AS ones
-    CROSS JOIN
-    (SELECT 0 AS n UNION ALL SELECT 1 UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4
-     UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9) AS tens
-    CROSS JOIN
-    (SELECT 0 AS n UNION ALL SELECT 1) AS hundreds
-  WHERE ones.n + tens.n * 10 + hundreds.n * 100 BETWEEN 1 AND 200
-) AS readings
-LEFT JOIN (
-  SELECT `patient_id`, COUNT(*) AS reading_count
-  FROM `health_metrics`
-  GROUP BY `patient_id`
-) AS existing ON existing.`patient_id` = p.`id`
-WHERE p.`username` REGEXP '^pat[0-9]+$'
-  AND readings.n <= @health_readings_per_patient
-  AND readings.n > COALESCE(existing.reading_count, 0);
+ON DUPLICATE KEY UPDATE `id` = `id`;

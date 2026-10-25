@@ -1,13 +1,13 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/db_connection.php';
 require_once __DIR__ . '/includes/sms_service.php';
 
+$_SESSION['password_reset_csrf'] ??= bin2hex(random_bytes(32));
 $message = '';
 $messageType = 'info';
 $role = $_POST['role'] ?? $_GET['role'] ?? 'patient';
 $resetRequest = $_SESSION['password_reset_request'] ?? null;
-$debugOtp = $_SESSION['password_reset_debug_otp'] ?? '';
 $step = $resetRequest ? 'verify' : 'request';
 
 if (!in_array($role, ['doctor', 'patient'], true)) {
@@ -15,6 +15,10 @@ if (!in_array($role, ['doctor', 'patient'], true)) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  if (!hash_equals($_SESSION['password_reset_csrf'], (string) ($_POST['password_reset_csrf'] ?? ''))) {
+    http_response_code(403);
+    exit('This reset form expired. Reload the page and try again.');
+  }
   $action = $_POST['action'] ?? '';
 
   try {
@@ -31,6 +35,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
     if ($action === 'request_otp') {
+      $now = time();
+      $recentRequests = array_values(array_filter(
+        $_SESSION['password_reset_requests'] ?? [],
+        static fn($timestamp) => is_int($timestamp) && $timestamp > $now - 900
+      ));
+      if (count($recentRequests) >= 3) {
+        http_response_code(429);
+        $message = 'Too many code requests. Wait 15 minutes before trying again.';
+        $messageType = 'danger';
+        throw new RuntimeException('Password reset request rate limit exceeded.');
+      }
+      $recentRequests[] = $now;
+      $_SESSION['password_reset_requests'] = $recentRequests;
       $username = trim($_POST['username'] ?? '');
       $phone = trim($_POST['phone'] ?? '');
 
@@ -61,22 +78,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           $smsBody = "Your MedConnect password reset code is {$otp}. It expires in 10 minutes.";
           $smsSent = medconnect_send_sms((string) ($account['phone'] ?? ''), $smsBody);
 
-          $_SESSION['password_reset_request'] = [
-            'role' => $role,
-            'account_id' => (int) $account['id'],
-            'phone' => (string) ($account['phone'] ?? '')
-          ];
-          $_SESSION['password_reset_debug_otp'] = $smsSent ? '' : $otp;
-          $resetRequest = $_SESSION['password_reset_request'];
-          $debugOtp = $_SESSION['password_reset_debug_otp'];
-          $step = 'verify';
-
           if ($smsSent) {
+            $_SESSION['password_reset_request'] = [
+              'role' => $role,
+              'account_id' => (int) $account['id'],
+            ];
+            $resetRequest = $_SESSION['password_reset_request'];
+            $step = 'verify';
             $message = 'If the account details match, a verification code has been sent to the registered mobile number.';
             $messageType = 'success';
           } else {
-            $message = 'SMS gateway is not configured in this environment. Use the local demo OTP below to continue.';
-            $messageType = 'warning';
+            $conn->prepare('DELETE FROM password_reset_otps WHERE role = :role AND account_id = :account_id')
+              ->execute([':role' => $role, ':account_id' => $account['id']]);
+            unset($_SESSION['password_reset_request']);
+            $resetRequest = null;
+            $step = 'request';
+            $message = 'If the account details match, a verification code has been sent to the registered mobile number.';
+            $messageType = 'success';
           }
         } else {
           $message = 'If the account details match, a verification code has been sent to the registered mobile number.';
@@ -113,15 +131,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         $conn->prepare("DELETE FROM password_reset_otps WHERE id = :id")
           ->execute([':id' => $otpRecord['id']]);
-        unset($_SESSION['password_reset_request'], $_SESSION['password_reset_debug_otp']);
+        unset($_SESSION['password_reset_request'], $_SESSION['password_reset_csrf'], $_SESSION['password_reset_requests']);
+        session_regenerate_id(true);
         $loginPage = $resetRequest['role'] === 'doctor' ? 'doctor-login.html' : 'patient-login.html';
         header("Location: {$loginPage}?reset=success");
         exit();
       }
     }
   } catch (Throwable $e) {
-    $message = 'Unable to process the password reset right now. Please try again.';
-    $messageType = 'danger';
+    if (http_response_code() !== 429) {
+      $message = 'Unable to process the password reset right now. Please try again.';
+      $messageType = 'danger';
+    }
   }
 }
 ?>
@@ -132,8 +153,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Reset your MedConnect password">
   <title>Reset Password - MedConnect</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=20261025-2">
   <link rel="stylesheet" href="css/business.css">
+  <link rel="stylesheet" href="css/theme.css">
+  <script src="js/theme-init.js"></script>
+  <link rel="stylesheet" href="css/app-ui.css?v=20261025-8" />
 </head>
 <body class="login-page">
   <div class="auth-layout">
@@ -144,15 +168,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php if ($message !== ''): ?>
       <div class="alert alert-<?= htmlspecialchars($messageType) ?>" role="alert">
-        <?php if ($messageType === 'warning' && $debugOtp !== ''): ?>
-          <strong>Local demo OTP:</strong> <?= htmlspecialchars($debugOtp) ?><br>
-        <?php endif; ?>
         <?= htmlspecialchars(strip_tags($message)) ?>
       </div>
     <?php endif; ?>
 
     <form method="POST" action="forgot-password.php">
-      <input type="hidden" name="role" value="<?= htmlspecialchars($role) ?>">
+      <input type="hidden" name="password_reset_csrf" value="<?= htmlspecialchars($_SESSION['password_reset_csrf'], ENT_QUOTES, 'UTF-8') ?>">
       <?php if ($step === 'request'): ?>
       <label for="role">Account type</label>
       <select id="role" name="role" required>
@@ -165,6 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="hidden" name="action" value="request_otp">
       <button type="submit" class="btn login-btn">Send Verification Code</button>
       <?php else: ?>
+      <input type="hidden" name="role" value="<?= htmlspecialchars($role, ENT_QUOTES, 'UTF-8') ?>">
       <input type="hidden" name="action" value="verify_otp">
       <input type="text" name="otp" placeholder="6-digit verification code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code">
       <input type="password" name="new_password" placeholder="New password (8+ characters)" required minlength="8" autocomplete="new-password">

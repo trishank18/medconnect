@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/session.php';
 if (!isset($_SESSION['patient_id'])) {
     http_response_code(401);
     exit('Unauthorized');
@@ -46,7 +46,15 @@ header('Content-Disposition: attachment; filename="' . $filename . '"');
         .meta { border-bottom: 1px solid #ddd; padding-bottom: 16px; }
         .section { margin-top: 24px; }
         .label { font-weight: bold; }
+        body.dark-theme { background: #101a22; color: #d9e7eb; color-scheme: dark; }
+        body.dark-theme h1 { color: #55c7c4; }
+        body.dark-theme .meta { border-color: #34515b; }
+        .dark-mode-switch { position: fixed; top: 18px; right: 20px; padding: 8px 12px; border: 1px solid #34515b; border-radius: 999px; background: #182832; color: #d9e7eb; cursor: pointer; }
+        .dark-mode-switch[aria-pressed="true"] { background: #e7b75c; color: #182832; }
     </style>
+    <link rel="stylesheet" href="css/theme.css">
+    <script src="js/theme-init.js"></script>
+  <link rel="stylesheet" href="css/app-ui.css?v=20261025-8" />
 </head>
 <body>
     <h1>MedConnect Prescription</h1>

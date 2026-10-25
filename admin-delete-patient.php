@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/db_connection.php';
 
 if (empty($_SESSION['admin_authenticated'])) {
@@ -24,11 +24,11 @@ if (!$patientId || $patientId < 1) {
 }
 
 try {
-    $patientStmt = $conn->prepare('SELECT fullname FROM patients WHERE id = :id');
+    $patientStmt = $conn->prepare('SELECT 1 FROM patients WHERE id = :id');
     $patientStmt->execute([':id' => $patientId]);
-    $patient = $patientStmt->fetch(PDO::FETCH_ASSOC);
+    $patientExists = $patientStmt->fetchColumn();
 
-    if (!$patient) {
+    if (!$patientExists) {
         header('Location: admin-dashboard.php?error=patient_not_found');
         exit();
     }
@@ -36,6 +36,8 @@ try {
     $conn->beginTransaction();
     $deleteSuggestions = $conn->prepare('DELETE FROM patient_suggestions WHERE patient_id = :patient_id');
     $deleteSuggestions->execute([':patient_id' => $patientId]);
+    $deleteResetCodes = $conn->prepare("DELETE FROM password_reset_otps WHERE role = 'patient' AND account_id = :patient_id");
+    $deleteResetCodes->execute([':patient_id' => $patientId]);
     $deletePrescriptions = $conn->prepare('DELETE FROM patient_prescriptions WHERE patient_id = :patient_id');
     $deletePrescriptions->execute([':patient_id' => $patientId]);
     $deleteAppointments = $conn->prepare('DELETE FROM appointments WHERE patient_id = :patient_id');
@@ -46,7 +48,7 @@ try {
     $deletePatient->execute([':patient_id' => $patientId]);
     $conn->commit();
 
-    header('Location: admin-dashboard.php?deleted_patient=' . rawurlencode($patient['fullname']));
+    header('Location: admin-dashboard.php?deleted_patient=1');
     exit();
 } catch (Throwable $exception) {
     if ($conn->inTransaction()) {

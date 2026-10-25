@@ -1,38 +1,5 @@
 <?php
-
-function medconnect_load_env_file(string $path = __DIR__ . '/../.env'): void
-{
-    if (!is_file($path)) {
-        return;
-    }
-
-    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    if ($lines === false) {
-        return;
-    }
-
-    foreach ($lines as $line) {
-        $trimmed = trim($line);
-        if ($trimmed === '' || str_starts_with($trimmed, '#')) {
-            continue;
-        }
-
-        if (!str_contains($trimmed, '=')) {
-            continue;
-        }
-
-        [$key, $value] = array_map('trim', explode('=', $trimmed, 2));
-        $value = trim($value);
-
-        if ($value !== '' && (($value[0] === '"' && substr($value, -1) === '"') || ($value[0] === "'" && substr($value, -1) === "'"))) {
-            $value = substr($value, 1, -1);
-        }
-
-        putenv("{$key}={$value}");
-        $_ENV[$key] = $value;
-        $_SERVER[$key] = $value;
-    }
-}
+require_once __DIR__ . '/env.php';
 
 function medconnect_normalize_phone(string $phone): string
 {

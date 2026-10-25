@@ -119,7 +119,7 @@ float readThermistor(int pin) {
     float voltage = rawValue * (3.3 / 4095.0); // Convert to voltage (ESP32 ADC)
     float resistance = (3.3 - voltage) / (voltage / 10000.0); // 10KΩ resistor in KY-013
     float tempK = 1 / (1 / (273.15 + 25) + log(resistance / 10000.0) / 3950.0); // Steinhart-Hart equation
-    return tempK - 263.15; // Convert Kelvin to Celsius
+    return tempK - 273.15; // Convert Kelvin to Celsius
 }
 
 // Send data to XAMPP server

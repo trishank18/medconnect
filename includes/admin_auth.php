@@ -24,12 +24,19 @@ function get_admin_credentials(PDO $conn): array
         return $credentials;
     }
 
-    $credentials = [
-        'username' => 'Sunny',
-        'password_hash' => '$2y$10$HE7C1qay5QOO64bfjHUWj.ekj7BsicZjntkcDBrcamee3iFtBxcmy'
-    ];
-    save_admin_credentials($conn, $credentials['username'], $credentials['password_hash']);
-    return $credentials;
+    // First-run setup can bootstrap the row from server-only configuration.
+    // Existing credentials remain authoritative and are never overwritten here.
+    $username = trim((string) (getenv('ADMIN_USERNAME') ?: ''));
+    $passwordHash = (string) (getenv('ADMIN_PASSWORD_HASH') ?: '');
+    $hashInfo = password_get_info($passwordHash);
+    if (preg_match('/^[A-Za-z0-9_.-]{3,50}$/', $username)
+        && strlen($passwordHash) <= 255
+        && ($hashInfo['algoName'] ?? 'unknown') !== 'unknown') {
+        save_admin_credentials($conn, $username, $passwordHash);
+        return ['username' => $username, 'password_hash' => $passwordHash];
+    }
+
+    return ['username' => '', 'password_hash' => ''];
 }
 
 function save_admin_credentials(PDO $conn, string $username, string $passwordHash): void

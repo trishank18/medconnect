@@ -1,5 +1,5 @@
 """Train per-target next-reading Random Forest models on timestamped patient sequences."""
-import json, sys
+import json, os, sys, tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 import numpy as np
@@ -28,9 +28,12 @@ def train(targets=None):
               "dataset_analysis": report_dataset(frame, path), "objective": "next observed reading for same patient within 24 hours; chronological holdout",
               "models": {}}
     candidates = targets or ["heart_rate", "spo2", "temperature", "blood_pressure_sys", "blood_pressure_dia"]
-    # Remove selected targets' prior artifacts so unsupported targets cannot silently serve stale models.
-    for target in candidates:
-        (MODELS / f"{target}.joblib").unlink(missing_ok=True)
+    supported = {"heart_rate", "spo2", "temperature", "blood_pressure_sys", "blood_pressure_dia"}
+    if any(target not in supported for target in candidates):
+        raise ValueError("Unsupported model target requested.")
+    # Keep working artifacts available until the full training run and report finish.
+    staging_context = tempfile.TemporaryDirectory(prefix=".staging-", dir=MODELS)
+    staging = Path(staging_context.name)
     for target in candidates:
         try: data, features = construct_next_readings(frame, target)
         except ValueError as exc:
@@ -74,7 +77,7 @@ def train(targets=None):
                     "dataset_version": report["dataset_version"], "target_unit": {"temperature":"C"}.get(target, {"spo2":"%"}.get(target, "bpm" if target == "heart_rate" else "mmHg")),
                     "objective": report["objective"], "metrics": metrics(yt, pred),
                     "median_interval_seconds": float(fit_rows.interval_seconds.median())}
-        joblib.dump(artifact, MODELS / f"{target}.joblib")
+        joblib.dump(artifact, staging / f"{target}.joblib")
         report["models"][target] = {"status":"trained", "features":features, "target":target,
             "train_records":len(train), "validation_records":len(valid), "test_records":len(test),
             "validation_mae":round(float(best_mae),4), "test":metrics(yt,pred), "baseline_persistence_test":metrics(yt[valid_base],baseline[valid_base]),
@@ -82,7 +85,20 @@ def train(targets=None):
             "artifact":f"models/{target}.joblib"}
     report_file = REPORTS / f"{version}.json"
     report_file.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
-    (MODELS / "latest.json").write_text(json.dumps({"model_version":version,"report":str(report_file.relative_to(ROOT / 'ml'))},indent=2),encoding="utf-8")
+    # Publish only after a successful full pass. Unsupported selected targets no
+    # longer serve stale models; an interrupted training run leaves old artifacts intact.
+    for target in candidates:
+        staged_artifact = staging / f"{target}.joblib"
+        final_artifact = MODELS / f"{target}.joblib"
+        if staged_artifact.is_file():
+            os.replace(staged_artifact, final_artifact)
+        else:
+            final_artifact.unlink(missing_ok=True)
+    latest = MODELS / "latest.json"
+    latest_temp = MODELS / f".latest-{version}.tmp"
+    latest_temp.write_text(json.dumps({"model_version":version,"report":str(report_file.relative_to(ROOT / 'ml'))},indent=2),encoding="utf-8")
+    os.replace(latest_temp, latest)
+    staging_context.cleanup()
     print(json.dumps(report, indent=2, default=str))
     return report
 

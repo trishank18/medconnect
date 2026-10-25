@@ -365,6 +365,56 @@ body.glass-theme .department-card .list-group-item {
 body.glass-theme .card-header,
 body.glass-theme .table thead th { background: rgba(255, 255, 255, .28) !important; }
 
+body.dark-theme {
+  --biz-ink: #d9e7eb;
+  --biz-muted: #a9c1c6;
+  --biz-navy: #9fe4e0;
+  --biz-surface: #182832;
+  --biz-canvas: #101a22;
+  --biz-line: #34515b;
+  --biz-shadow: 0 12px 30px rgba(0, 0, 0, .28);
+}
+body.dark-theme.bg-light,
+body.dark-theme .bg-light { background-color: var(--biz-canvas) !important; color: var(--biz-ink) !important; }
+body.dark-theme .card,
+body.dark-theme .modal-content,
+body.dark-theme .dropdown-menu,
+body.dark-theme .list-group-item,
+body.dark-theme .table-responsive,
+body.dark-theme .health-assistant,
+body.dark-theme .health-assistant-form {
+  background-color: var(--biz-surface) !important;
+  border-color: var(--biz-line) !important;
+  color: var(--biz-ink);
+}
+body.dark-theme .card-header,
+body.dark-theme .table thead th { background: #203943 !important; color: #e5f1f3; }
+body.dark-theme .text-muted,
+body.dark-theme .form-text { color: var(--biz-muted) !important; }
+body.dark-theme .form-control,
+body.dark-theme .form-select,
+body.dark-theme textarea {
+  background-color: #101a22;
+  border-color: var(--biz-line);
+  color: #e5f1f3;
+}
+body.dark-theme .form-control:focus,
+body.dark-theme .form-select:focus,
+body.dark-theme textarea:focus {
+  background-color: #101a22;
+  border-color: #55c7c4;
+  color: #fff;
+}
+body.dark-theme .table { --bs-table-bg: var(--biz-surface); --bs-table-color: var(--biz-ink); --bs-table-border-color: var(--biz-line); --bs-table-striped-bg: #203943; --bs-table-hover-bg: #26434d; }
+body.dark-theme .nav-tabs,
+body.dark-theme .nav-pills { border-color: var(--biz-line); }
+body.dark-theme .nav-link { color: #9fe4e0; }
+body.dark-theme .btn-outline-secondary { color: #b9ced2; border-color: #59747c; }
+body.dark-theme .health-assistant-messages { background: #101a22; }
+body.dark-theme .health-assistant-message.model { background: #203943; border-color: var(--biz-line); color: var(--biz-ink); }
+body.dark-theme .health-assistant-note { color: var(--biz-muted); }
+body.dark-theme .patient-trends-modal { background: var(--biz-canvas); }
+
 .design-switch {
   align-items: center;
   background: rgba(255, 255, 255, .78);

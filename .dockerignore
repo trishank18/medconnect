@@ -8,5 +8,10 @@ exports/*.csv
 exports/*.csv.tmp
 __pycache__
 *.pyc
+**/.venv/
+**/venv/
+ml/reports/
+python-rag/data/
+dataset/
 REPORT
 read me .txt

@@ -1,14 +1,8 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/session.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
-$role = isset($_SESSION['patient_id']) ? 'patient' : (isset($_SESSION['doctor_id']) ? 'doctor' : null);
-if (!$role) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Please sign in to use the health assistant.']);
-    exit();
-}
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Only POST requests are supported.']);
@@ -35,6 +29,19 @@ if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 4096) {
 }
 
 $body = json_decode(file_get_contents('php://input'), true);
+if (!is_array($body)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Send a valid question.']);
+    exit();
+}
+$role = $body['role'] ?? '';
+if (!in_array($role, ['patient', 'doctor'], true)
+    || ($role === 'patient' && empty($_SESSION['patient_id']))
+    || ($role === 'doctor' && empty($_SESSION['doctor_id']))) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Please sign in to the correct workspace to use the health assistant.']);
+    exit();
+}
 $question = trim((string)($body['question'] ?? ''));
 if ($question === '' || strlen($question) > 2000) {
     http_response_code(422);
@@ -61,6 +68,16 @@ if (preg_match('/^(is this which step|which step is this|what step is this)[?.!,
 require_once __DIR__ . '/includes/sms_service.php';
 medconnect_load_env_file();
 require_once __DIR__ . '/includes/db_connection.php';
+
+if ($role === 'doctor') {
+    $approvedDoctor = $conn->prepare("SELECT 1 FROM doctors WHERE id = :doctor_id AND verification_status = 'approved' LIMIT 1");
+    $approvedDoctor->execute([':doctor_id' => (int) $_SESSION['doctor_id']]);
+    if (!$approvedDoctor->fetchColumn()) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Doctor access is pending verification.']);
+        exit();
+    }
+}
 
 if (preg_match('/\b(book|schedule|make|create)\b.{0,40}\b(appoin\w*|booking)\b/i', $question)) {
     echo json_encode([
@@ -228,7 +245,7 @@ if (preg_match("/{$measurementTerms}/i", $question) && $measurementIntent) {
             echo json_encode(['error' => 'Choose an assigned patient before asking about readings.']);
             exit();
         }
-        $access = $conn->prepare("SELECT 1 FROM appointments a JOIN doctors d ON d.id = a.doctor_id WHERE a.doctor_id = :doctor_id AND a.patient_id = :patient_id AND d.verification_status = 'approved' LIMIT 1");
+        $access = $conn->prepare("SELECT 1 FROM patients p JOIN doctors d ON d.id = :doctor_id WHERE p.id = :patient_id AND d.verification_status = 'approved' AND (p.doctor_id = d.id OR EXISTS (SELECT 1 FROM appointments a WHERE a.patient_id = p.id AND a.doctor_id = d.id)) LIMIT 1");
         $access->execute([':doctor_id' => (int)$_SESSION['doctor_id'], ':patient_id' => $targetId]);
         if (!$access->fetchColumn()) {
             http_response_code(403);
@@ -256,7 +273,7 @@ if (preg_match("/{$measurementTerms}/i", $question) && $measurementIntent) {
         $dateFilter = 'recorded_at < DATE_SUB(NOW(), INTERVAL 7 DAY)';
         $periodLabel = 'before the last seven days';
     }
-    $stmt = $conn->prepare("SELECT heart_rate, spo2, temperature, blood_pressure_sys, blood_pressure_dia, recorded_at FROM health_metrics WHERE patient_id = :patient_id AND {$dateFilter} ORDER BY recorded_at DESC LIMIT 50");
+    $stmt = $conn->prepare("SELECT heart_rate, spo2, temperature, blood_pressure_sys, blood_pressure_dia, recorded_at FROM health_metrics WHERE patient_id = :patient_id AND {$dateFilter} ORDER BY recorded_at DESC, id DESC LIMIT 50");
     $stmt->execute([':patient_id' => $targetId]);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     if (!$rows) {
@@ -361,7 +378,7 @@ if ($isDataQuestion) {
             echo json_encode(['error' => 'Choose an assigned patient before asking about readings.']);
             exit();
         }
-        $access = $conn->prepare("SELECT 1 FROM appointments a JOIN doctors d ON d.id = a.doctor_id WHERE a.doctor_id = :doctor_id AND a.patient_id = :patient_id AND d.verification_status = 'approved' LIMIT 1");
+        $access = $conn->prepare("SELECT 1 FROM patients p JOIN doctors d ON d.id = :doctor_id WHERE p.id = :patient_id AND d.verification_status = 'approved' AND (p.doctor_id = d.id OR EXISTS (SELECT 1 FROM appointments a WHERE a.patient_id = p.id AND a.doctor_id = d.id)) LIMIT 1");
         $access->execute([':doctor_id' => (int)$_SESSION['doctor_id'], ':patient_id' => $targetId]);
         if (!$access->fetchColumn()) {
             http_response_code(403);
@@ -372,7 +389,7 @@ if ($isDataQuestion) {
     $dateCondition = $isHistoricalQuestion
         ? 'recorded_at < DATE_SUB(NOW(), INTERVAL 7 DAY)'
         : 'recorded_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
-    $stmt = $conn->prepare("SELECT heart_rate, spo2, temperature, blood_pressure_sys, blood_pressure_dia, recorded_at FROM health_metrics WHERE patient_id = :patient_id AND {$dateCondition} ORDER BY recorded_at DESC LIMIT 50");
+    $stmt = $conn->prepare("SELECT heart_rate, spo2, temperature, blood_pressure_sys, blood_pressure_dia, recorded_at FROM health_metrics WHERE patient_id = :patient_id AND {$dateCondition} ORDER BY recorded_at DESC, id DESC LIMIT 50");
     $stmt->execute([':patient_id' => $targetId]);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     if (!$rows) {

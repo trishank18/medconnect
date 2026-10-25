@@ -1,7 +1,9 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/session.php';
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
 if (!isset($_SESSION['doctor_id'])) {
-    header('Content-Type: application/json');
+    http_response_code(401);
     echo json_encode(['success' => false, 'error' => 'Unauthorized']);
     exit();
 }
@@ -9,23 +11,29 @@ if (!isset($_SESSION['doctor_id'])) {
 require_once __DIR__ . '/includes/db_connection.php';
 
 try {
-    if (!isset($_GET['patient_id'])) {
-        throw new Exception('Patient ID not provided');
+    $patientId = filter_input(INPUT_GET, 'patient_id', FILTER_VALIDATE_INT);
+    if (!$patientId || $patientId < 1) {
+        http_response_code(422);
+        throw new Exception('A valid patient ID is required.');
     }
 
-    $patientId = $_GET['patient_id'];
-
-    // Verify the doctor has access to this patient
+    // Allow only an approved doctor with an explicit assignment or appointment relationship.
     $stmt = $conn->prepare("
-        SELECT COUNT(*) 
-        FROM appointments 
-        WHERE doctor_id = :doctor_id AND patient_id = :patient_id
+        SELECT 1
+        FROM patients p
+        INNER JOIN doctors d ON d.id = :doctor_id
+        WHERE p.id = :patient_id
+          AND d.verification_status = 'approved'
+          AND (p.doctor_id = d.id OR EXISTS (
+              SELECT 1 FROM appointments a
+              WHERE a.patient_id = p.id AND a.doctor_id = d.id
+          ))
+        LIMIT 1
     ");
-    $stmt->bindParam(':doctor_id', $_SESSION['doctor_id']);
-    $stmt->bindParam(':patient_id', $patientId);
-    $stmt->execute();
+    $stmt->execute([':doctor_id' => (int) $_SESSION['doctor_id'], ':patient_id' => $patientId]);
     
-    if ($stmt->fetchColumn() == 0) {
+    if (!$stmt->fetchColumn()) {
+        http_response_code(403);
         throw new Exception('Patient not found or access denied');
     }
 
@@ -36,22 +44,27 @@ try {
         FROM health_metrics
         WHERE patient_id = :patient_id
         AND recorded_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-        ORDER BY recorded_at ASC
+        ORDER BY recorded_at ASC, id ASC
     ");
     $stmt->bindParam(':patient_id', $patientId);
     $stmt->execute();
     $metrics = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    header('Content-Type: application/json');
     echo json_encode([
         'success' => true,
         'metrics' => $metrics
     ]);
 
 } catch (Exception $e) {
-    header('Content-Type: application/json');
+    if ($e instanceof PDOException) {
+        error_log('MedConnect doctor metrics query failed: ' . $e->getMessage());
+        http_response_code(500);
+        $errorMessage = 'Health data is temporarily unavailable.';
+    } else {
+        $errorMessage = $e->getMessage();
+    }
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'error' => $errorMessage
     ]);
 }

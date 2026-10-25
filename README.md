@@ -17,6 +17,21 @@ MedConnect is a local IoT-enabled health-monitoring platform for patients, docto
 - Database-backed assistant fallbacks for readings, appointments, doctors, departments, prescriptions, and analytics guidance
 - Gemini general-information fallback for questions outside the approved project documents
 
+## Dashboard theme and navigation
+
+The shared dashboard presentation is provided by:
+
+- `css/theme.css` for dark/light design tokens, responsive sidebar, cards, forms, tables, focus states, and reduced-motion behavior
+- `css/app-ui.css` for the shared dashboard visual language on public, authentication, utility, and content pages
+- `js/theme-init.js` for early theme application before page content renders
+- `js/design-switch.js` for the accessible persisted dark/light and Glass/Minimal controls
+- `js/dashboard-shell.js` for the responsive patient, doctor, and administrator sidebar
+
+Dark mode is the default. The selected mode is stored in the browser under
+`medconnect-dark-mode`; selecting light mode provides the alternative palette.
+The sidebar uses only existing application routes and dashboard sections, so it
+does not add fake features or data.
+
 ## Technology stack
 
 ### Web application
@@ -162,11 +177,13 @@ Start **Apache** and **MySQL** from the XAMPP Control Panel.
 
 ### 2. Create the database
 
-Create a database in phpMyAdmin and import:
+Only for a **new local development database**, create the database in phpMyAdmin and import:
 
 ```text
 read me .txt\sql.txt
 ```
+
+The SQL file includes local demonstration doctor and patient accounts that share a test password. Do not expose those fixtures as production accounts. It does not generate health readings. Do not import the schema over an existing MedConnect database; use only the applicable migration for an existing installation.
 
 For an existing database created before doctor verification was added, run:
 
@@ -185,14 +202,26 @@ Copy-Item .env.example .env
 Set the values in `.env`:
 
 ```text
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=medconnect
+DB_USER=root
+DB_PASSWORD=
 GEMINI_API_KEY=your_private_key
 GEMINI_MODEL=gemini-3.8-flash
 EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
 RAG_SERVICE_TOKEN=long_random_secret_shared_only_by_PHP_and_RAG
 RAG_URL=http://127.0.0.1:8000/chat
+DEVICE_INGEST_TOKEN=long_random_device_secret
+DEVICE_PATIENT_ID=
+ML_API_URL=http://127.0.0.1:8001
+ML_API_TOKEN=long_random_secret
+ADMIN_USERNAME=your_admin_username
+ADMIN_PASSWORD_HASH=your_generated_password_hash
 ```
 
 Never commit `.env`, API keys, database passwords, Twilio credentials, or real patient data.
+The sensor endpoint requires an explicit `DEVICE_PATIENT_ID`; it has no default patient target. Configure the actual device-to-patient mapping before sending readings.
 
 For SMS recovery, also configure:
 
@@ -202,7 +231,7 @@ TWILIO_AUTH_TOKEN=your_auth_token
 TWILIO_FROM_NUMBER=+1234567890
 ```
 
-For administrator access, configure `ADMIN_USERNAME` and a password hash. Generate a hash with:
+For first-run administrator access, set `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` in the server-only `.env` file. On the first admin login, MedConnect stores those credentials in `admin_credentials`; later `.env` changes will not overwrite database credentials. Generate a password hash with:
 
 ```powershell
 C:\xampp\php\php.exe -r "echo password_hash('your-password', PASSWORD_DEFAULT), PHP_EOL;"
@@ -343,10 +372,10 @@ Manual checks:
 - Do not expose `.env` or the RAG token to browser JavaScript.
 - The PHP endpoint requires an authenticated patient or doctor session and CSRF token.
 - Patient readings are queried with the authenticated patient ID.
-- Doctor patient-record requests are re-authorized against approved doctor appointments.
+- Doctor patient-record requests are re-authorized against an approved doctor's explicit patient assignment or appointment relationship.
 - RAG requests require `X-MedConnect-Token`.
 - Use prepared statements for database queries.
-- Generated CSV exports may contain personal health information and are ignored by Git.
+- Administrator CSV exports stream after server-side role verification; the legacy `exports/` directory is blocked from web access.
 - Review all documents before adding them to the approved RAG corpus.
 
 ## Project structure
@@ -355,7 +384,7 @@ Manual checks:
 medconnect/
 |-- css/                       Stylesheets, including assistant UI
 |-- doctor/                    Doctor registration/login pages
-|-- exports/                   Local generated CSV exports
+|-- exports/                   Legacy export folder (web access denied)
 |-- includes/                  Database, authentication, and SMS helpers
 |-- js/                        Dashboard and assistant JavaScript
 |-- ml/                        Python anomaly-screening bridge/model

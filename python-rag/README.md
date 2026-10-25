@@ -27,7 +27,11 @@ The browser never calls this service. `gemini-chat.php` checks the existing PHP 
    The command prints document, chunk, and extraction-error counts. Rebuilding replaces the index, so removed/changed documents are removed from the next index. Review each source before adding it; retrieval content is treated as untrusted data. No public ingestion route is provided.
 5. Start Apache/MySQL in XAMPP and use the existing MedConnect dashboards. `GET http://127.0.0.1:8000/health` reports only service liveness.
 
-The default model is `gemini-3.8-flash`; the model page documents it as generally available. Change `GEMINI_MODEL` through environment configuration when Google changes model availability. Missing/invalid keys, quota errors, timeouts, and service failures are returned as a sanitized temporary-unavailability message. [Google Gemini model documentation](https://ai.google.dev/gemini-api/docs/models?hl=en)
+The generation model is selected through `GEMINI_MODEL` (the repository default is `gemini-3.8-flash`); the RAG code does not validate model availability at startup. Embeddings use the local `sentence-transformers/all-MiniLM-L6-v2` model (384 dimensions). Changing `EMBEDDING_MODEL` requires rebuilding `data/knowledge.faiss`; vectors from different models must not share an index. `RAG_EMBED_BATCH_SIZE` controls ingestion batch size.
+
+Chunking now groups source text by headings and paragraphs, recursively splits long blocks at sentence/whitespace boundaries, removes exact duplicate chunks, and records document, section, page, chunk, content-hash, source-type, and strategy metadata. Retrieval combines normalized dense similarity and lexical term ranking with reciprocal-rank fusion. The lexical scorer is lightweight and not a full BM25 implementation; no cross-encoder is enabled because the repository has no reranker dependency or local relevance evaluation data. The dataset directory was empty during this audit, so relevance metrics could not be truthfully measured. OCR, semantic chunk boundary detection, persistent embedding cache, and incremental per-document vector mutation remain unsupported; ingestion currently rebuilds the index safely from the approved directory.
+
+Run the no-key unit suite with `python -m unittest discover -s python-rag/tests -v`. It covers deterministic chunking only; it does not exercise live Gemini, FAISS, PHP sessions, or browser behavior.
 
 ## Manual checklist
 

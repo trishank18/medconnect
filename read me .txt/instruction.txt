@@ -1,18 +1,16 @@
-save the project folder in XAMPP foldet in htdocs
-start apache and sql in XAMPP server
-now go to admin and execute sql queries
-save all and go to any browser and type 
-"http://localhost/medconnect/"
-Microsoft Windows [Version 10.0.26200.8117]
-(c) Microsoft Corporation. All rights reserved.
+MedConnect local setup with XAMPP
 
-C:\Windows\System32>netstat -ano | findstr :3306
-  TCP    0.0.0.0:3306           0.0.0.0:0              LISTENING       5416
-  TCP    0.0.0.0:33060          0.0.0.0:0              LISTENING       5416
-  TCP    [::]:3306              [::]:0                 LISTENING       5416
-  TCP    [::]:33060             [::]:0                 LISTENING       5416
+1. Place the project folder at C:\xampp\htdocs\medconnect.
+2. Start Apache and MySQL from the XAMPP Control Panel.
+3. For a new local database only, create `medconnect` in phpMyAdmin and import `sql.txt`.
+   For an existing database, do not import the full setup script; use only a required migration.
+4. Configure the server-only values in the project `.env` file. Never use the template values as secrets.
+5. Open http://localhost/medconnect/ and sign in with an existing account.
 
-C:\Windows\System32>taskkill /F /PID 5416
-SUCCESS: The process with PID 5416 has been terminated.
+If port 3306 is already in use, identify the owning MySQL service first and stop it
+gracefully through the service's own controls if appropriate. Do not force-kill an
+unknown process by PID; doing so can interrupt another database or lose unsaved work.
 
-C:\Windows\System32>
+Before sending sensor data, configure `DEVICE_INGEST_TOKEN` and the correct
+`DEVICE_PATIENT_ID` on the server, then place the matching token on the device.
+Use HTTPS whenever sensor traffic leaves a trusted local development network.

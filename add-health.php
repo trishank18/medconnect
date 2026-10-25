@@ -1,14 +1,20 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/session.php';
 if (!isset($_SESSION['patient_id'])) {
     header('Location: patient-login.html');
     exit();
 }
+$_SESSION['patient_csrf'] ??= bin2hex(random_bytes(32));
 
 require_once __DIR__ . '/includes/db_connection.php';
+require_once __DIR__ . '/includes/ml_client.php';
 
 $error = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!hash_equals($_SESSION['patient_csrf'], (string) ($_POST['patient_csrf'] ?? ''))) {
+        http_response_code(403);
+        exit('Invalid request token. Reload the page and try again.');
+    }
     $values = [
         'heart_rate' => filter_input(INPUT_POST, 'heart_rate', FILTER_VALIDATE_INT),
         'spo2' => filter_input(INPUT_POST, 'spo2', FILTER_VALIDATE_INT),
@@ -17,8 +23,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'blood_pressure_dia' => filter_input(INPUT_POST, 'blood_pressure_dia', FILTER_VALIDATE_INT)
     ];
 
-    if ($values['heart_rate'] === false || $values['spo2'] === false || $values['temperature'] === false
-        || $values['blood_pressure_sys'] === false || $values['blood_pressure_dia'] === false) {
+    $bounds = [
+        'heart_rate' => [20, 250],
+        'spo2' => [50, 100],
+        'temperature' => [25, 45],
+        'blood_pressure_sys' => [50, 250],
+        'blood_pressure_dia' => [30, 150],
+    ];
+    $valid = true;
+    foreach ($bounds as $field => [$minimum, $maximum]) {
+        $value = $values[$field];
+        if ($value === false || $value === null || $value < $minimum || $value > $maximum) {
+            $valid = false;
+            break;
+        }
+    }
+    if ($valid && $values['blood_pressure_sys'] <= $values['blood_pressure_dia']) {
+        $valid = false;
+    }
+
+    if (!$valid) {
         $error = 'Please enter valid values for every measurement.';
     } else {
         try {
@@ -48,43 +72,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Prediction reconciliation is optional; preserve actual reading ingestion on failure.
             }
 
-            // Actual measurement is committed first. Predictions are best-effort and stored separately.
-            $modelInputs = [
-                'heart_rate' => (float) $values['heart_rate'],
-                'spo2' => (float) $values['spo2'],
-                'temperature' => (float) $values['temperature'],
-                'blood_pressure_sys' => (float) $values['blood_pressure_sys'],
-                'blood_pressure_dia' => (float) $values['blood_pressure_dia'],
-            ];
-            $apiUrl = rtrim(getenv('ML_API_URL') ?: 'http://127.0.0.1:8001', '/');
-            foreach (array_keys($modelInputs) as $target) {
-                $features = array_intersect_key($modelInputs, array_flip(['heart_rate', 'spo2', 'temperature']));
-                unset($features[$target]); // The target value is never passed as its own predictor.
-                $headers = "Content-Type: application/json\r\n";
-                $apiToken = getenv('ML_API_TOKEN');
-                if ($apiToken) $headers .= 'X-ML-Token: ' . $apiToken . "\r\n";
-                $context = stream_context_create(['http' => [
-                    'method' => 'POST', 'header' => $headers,
-                    'content' => json_encode(['target_name' => $target, 'features' => $features]),
-                    'timeout' => 2, 'ignore_errors' => true,
-                ]]);
-                $response = @file_get_contents($apiUrl . '/predict', false, $context);
-                if ($response === false) continue;
-                $prediction = json_decode($response, true);
-                if (!is_array($prediction) || !isset($prediction['predicted_value'], $prediction['model_version'])) continue;
-                try {
-                    $predictionStmt = $conn->prepare(
-                        'INSERT INTO ml_predictions (patient_id, target_name, predicted_value, model_version, prediction_timestamp, target_timestamp)
-                         VALUES (:patient_id, :target_name, :predicted_value, :model_version, :prediction_timestamp, :target_timestamp)'
+            // Actual measurement is committed first. Predictions are database-backed
+            // and best-effort; an unavailable model never undoes the reading.
+            try {
+                $predictionResponse = request_patient_predictions((int) $_SESSION['patient_id']);
+                if ($predictionResponse['ok']) {
+                    store_patient_predictions(
+                        $conn,
+                        (int) $_SESSION['patient_id'],
+                        $predictionResponse['data']
                     );
-                    $predictionStmt->execute([
-                        ':patient_id' => $_SESSION['patient_id'], ':target_name' => $target,
-                        ':predicted_value' => $prediction['predicted_value'], ':model_version' => $prediction['model_version'],
-                        ':prediction_timestamp' => date('Y-m-d H:i:s'), ':target_timestamp' => $prediction['target_timestamp'] ?? null,
-                    ]);
-                } catch (PDOException $ignored) {
-                    // Prediction persistence must not undo an actual health reading.
                 }
+            } catch (Throwable $ignored) {
+                // Prediction persistence must not undo an actual health reading.
             }
             header('Location: patient-dashboard.php?health_saved=1');
             exit();
@@ -103,6 +103,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="css/business.css">
+    <link rel="stylesheet" href="css/theme.css">
+    <script src="js/theme-init.js"></script>
+  <link rel="stylesheet" href="css/app-ui.css?v=20261025-8" />
 </head>
 <body class="bg-light">
 <div class="container py-5" style="max-width: 760px;">
@@ -119,6 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card-body p-4">
             <p class="text-muted">Enter a complete reading to include it in your health history and personal pattern screen.</p>
             <form method="POST" class="row g-3">
+                <input type="hidden" name="patient_csrf" value="<?= htmlspecialchars($_SESSION['patient_csrf'], ENT_QUOTES, 'UTF-8') ?>">
                 <div class="col-md-6">
                     <label for="heart_rate" class="form-label">Heart rate (BPM)</label>
                     <input type="number" class="form-control" id="heart_rate" name="heart_rate" min="20" max="250" required>

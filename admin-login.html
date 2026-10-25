@@ -5,15 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="MedConnect administrator login" />
   <title>Admin Login - MedConnect</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=20261025-2" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <script src="js/theme-init.js"></script>
+  <link rel="stylesheet" href="css/app-ui.css?v=20261025-8" />
 </head>
 <body class="login-page admin-login-page">
   <div class="auth-layout">
-    <aside class="auth-visual"><img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=85" alt="Healthcare professional reviewing information on a tablet" /><span class="auth-mark" aria-hidden="true">&#9881;</span><p class="eyebrow">Operations workspace</p><h1>Verify every clinician.</h1></aside>
+    <aside class="auth-visual"><img src="https://images.unsplash.com/photo-1666214280391-8ff5bd3c0bf0?auto=format&fit=crop&w=900&q=85" alt="Healthcare professionals reviewing clinical information on a computer" /><span class="auth-mark" aria-hidden="true">&#9881;</span><p class="eyebrow">Operations workspace</p><h1>Verify every clinician.</h1></aside>
     <div class="login-container">
       <h2>Administrator Login</h2>
       <p class="form-note">Use the administrator credentials configured on the server.</p>
-      <form action="admin-login.php" method="POST">
+      <div id="admin-login-status" class="login-status" role="alert" hidden></div>
+      <form action="admin-login.php" method="POST" data-csrf-form="admin_login">
+        <input type="hidden" name="csrf_token" value="" />
+        <p class="form-note" data-form-csrf-error role="alert"></p>
         <input type="text" placeholder="Admin username" name="username" required autocomplete="username" />
         <input type="password" placeholder="Admin password" name="password" required autocomplete="current-password" />
         <button type="submit" class="btn login-btn">Sign in</button>
@@ -22,6 +28,20 @@
       <p class="switch-link"><a href="index.html">Return to MedConnect</a></p>
     </div>
   </div>
+  <script src="js/form-csrf.js"></script>
+  <script>
+    const adminLoginStatus = document.getElementById('admin-login-status');
+    const adminLoginErrors = {
+      invalid_credentials: 'The administrator username or password is incorrect.',
+      invalid_request: 'This login form expired. Refresh the page and try again.'
+    };
+    const adminLoginError = new URLSearchParams(location.search).get('error');
+    if (adminLoginErrors[adminLoginError]) {
+      adminLoginStatus.textContent = adminLoginErrors[adminLoginError];
+      adminLoginStatus.classList.add('login-status-error');
+      adminLoginStatus.hidden = false;
+    }
+  </script>
   <script src="js/design-switch.js"></script>
 </body>
 </html>

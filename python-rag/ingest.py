@@ -8,7 +8,7 @@ import numpy as np
 
 from config import CHUNK_OVERLAP, CHUNK_SIZE, DATA_DIR, DOCUMENTS_DIR, EMBEDDING_MODEL, INDEX_PATH, METADATA_PATH
 from retrieval import embedder
-from chunking import split_text
+from chunking import chunk_document
 
 
 def extract(path):
@@ -33,13 +33,19 @@ def main():
             continue
         try:
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            title = path.stem.replace("_", " ").replace("-", " ")
             for page, text in extract(path):
-                for chunk in split_text(text, CHUNK_SIZE, CHUNK_OVERLAP):
-                    records.append({"document": path.name, "page": page, "category": "approved-reference", "version": digest[:12], "text": chunk})
+                for number, chunk in enumerate(chunk_document(text, CHUNK_SIZE, CHUNK_OVERLAP)):
+                    content_hash = hashlib.sha256(chunk["text"].encode("utf-8")).hexdigest()
+                    records.append({"document": path.name, "document_id": hashlib.sha256(str(path.relative_to(DOCUMENTS_DIR)).encode()).hexdigest()[:16],
+                        "title": title, "section": chunk["section"], "page": page, "chunk_index": number,
+                        "source_type": path.suffix.lower().lstrip("."), "content_hash": content_hash,
+                        "chunking_strategy": chunk["strategy"], "embedding_model": EMBEDDING_MODEL,
+                        "category": "approved-reference", "version": digest[:12], "text": chunk["text"]})
         except Exception as exc:
             errors.append(f"{path.name}: {type(exc).__name__}")
     if records:
-        vectors = embedder().encode([r["text"] for r in records], normalize_embeddings=True).astype("float32")
+        vectors = embedder().encode([r["text"] for r in records], normalize_embeddings=True, batch_size=int(__import__('os').getenv('RAG_EMBED_BATCH_SIZE', '32'))).astype("float32")
         index = faiss.IndexFlatIP(vectors.shape[1])
         index.add(vectors)
         faiss.write_index(index, str(INDEX_PATH))

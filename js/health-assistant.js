@@ -36,7 +36,7 @@
     try {
       const response = await fetch(form.dataset.chatEndpoint || 'gemini-chat.php', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': form.dataset.csrf || '' },
-        body: JSON.stringify({ question, patient_id: patientId })
+        body: JSON.stringify({ question, patient_id: patientId, role: form.dataset.role || '' })
       });
       const data = await response.json();
       loading.remove();

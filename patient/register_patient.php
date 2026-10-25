@@ -1,13 +1,32 @@
 <?php
-require_once '../includes/db_connection.php';
+require_once __DIR__ . '/../includes/session.php';
+if ($_SERVER['REQUEST_METHOD'] !== 'POST'
+    || !isset($_SESSION['csrf_patient_register'])
+    || !hash_equals($_SESSION['csrf_patient_register'], (string) ($_POST['csrf_token'] ?? ''))) {
+    header('Location: ../patient-register.html?error=invalid_request');
+    exit();
+}
+require_once __DIR__ . '/../includes/db_connection.php';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $fullname = $_POST['fullname'];
-    $email = $_POST['email'];
-    $phone = $_POST['phone'];
-    $age = $_POST['age'];
-    $username = $_POST['username'];
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $fullname = trim((string) ($_POST['fullname'] ?? ''));
+    $email = trim((string) ($_POST['email'] ?? ''));
+    $phone = trim((string) ($_POST['phone'] ?? ''));
+    $age = filter_var($_POST['age'] ?? null, FILTER_VALIDATE_INT);
+    $username = trim((string) ($_POST['username'] ?? ''));
+    $plainPassword = (string) ($_POST['password'] ?? '');
+    $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
+
+    if ($fullname === '' || strlen($fullname) > 100 || preg_match('/[\r\n]/', $fullname)
+        || !filter_var($email, FILTER_VALIDATE_EMAIL)
+        || strlen($email) > 100 || !preg_match('/^[+0-9(). -]{7,20}$/', $phone)
+        || $age === false || $age < 1 || $age > 150
+        || !preg_match('/^[A-Za-z0-9_.-]{3,50}$/', $username)
+        || strlen($plainPassword) < 8 || strlen($plainPassword) > 200
+        || $plainPassword !== $confirmPassword) {
+        header('Location: ../patient-register.html?error=invalid_input');
+        exit();
+    }
+    $password = password_hash($plainPassword, PASSWORD_DEFAULT);
 
     try {
         $stmt = $conn->prepare("INSERT INTO patients (fullname, email, phone, age, username, password) 
@@ -31,8 +50,4 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         exit();
     }
-} else {
-    header("Location: ../patient-register.html");
-    exit();
-}
 ?>

@@ -161,7 +161,8 @@ class node_mysql,node_db_access,node_sms,node_patient,node_doctor,node_admin,nod
    `save_data.php` accepts POST data only when the configured
    `X-MedConnect-Device-Token` matches.
 3. **Database boundary**: MySQL contains private patient data. Queries must use
-   the authenticated patient ID or an authorized doctor-patient appointment.
+   the authenticated patient ID or an approved doctor's explicit patient assignment
+   (`patients.doctor_id`) or appointment relationship.
 4. **RAG boundary**: the browser never calls FastAPI or Gemini directly. PHP
    calls the loopback RAG service with `X-MedConnect-Token`.
 5. **External-service boundary**: only the RAG service sends approved excerpts

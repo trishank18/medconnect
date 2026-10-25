@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/session.php';
 if (!isset($_SESSION['patient_id'])) {
     header('Location: patient-login.html');
     exit();
@@ -13,7 +13,7 @@ try {
     $patient = $patientStmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$patient) {
-        session_destroy();
+        unset($_SESSION['patient_id'], $_SESSION['patient_name'], $_SESSION['patient_csrf']);
         header('Location: patient-login.html?error=patient_not_found');
         exit();
     }
@@ -22,13 +22,15 @@ try {
         'SELECT heart_rate, spo2, temperature, blood_pressure_sys, blood_pressure_dia, recorded_at
          FROM health_metrics
          WHERE patient_id = :patient_id
-         ORDER BY recorded_at DESC
+         ORDER BY recorded_at DESC, id DESC
          LIMIT 10'
     );
     $historyStmt->execute([':patient_id' => $_SESSION['patient_id']]);
     $history = $historyStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $exception) {
-    die('Database error: ' . htmlspecialchars($exception->getMessage()));
+    error_log('MedConnect patient analytics query failed: ' . $exception->getMessage());
+    http_response_code(500);
+    exit('Health analytics are temporarily unavailable. Please try again later.');
 }
 
 $chartRows = array_reverse($history);
@@ -47,21 +49,19 @@ $chartRows = array_reverse($history);
         .score { font-size: 3.5rem; font-weight: 700; }
         .table td, .table th { white-space: nowrap; }
         .risk-indicator { align-items: center; display: inline-flex; gap: 10px; }
-        .risk-light { background: #28a745; border: 4px solid rgba(255,255,255,.45); border-radius: 50%; box-shadow: 0 0 0 5px rgba(40,167,69,.18); display: inline-block; height: 22px; width: 22px; }
-        .risk-high .risk-light { background: #dc3545; box-shadow: 0 0 0 5px rgba(220,53,69,.18); }
-        .risk-high .risk-light.is-blinking { animation: riskPulse .8s infinite; }
-        .risk-high .prediction-hero { background: linear-gradient(135deg, #7b1e2b, #dc3545); }
-        .risk-good .prediction-hero { background: linear-gradient(135deg, #116149, #168f83); }
+        .pattern-light { background: #43d6a0; border: 4px solid rgba(255,255,255,.45); border-radius: 50%; box-shadow: 0 0 0 5px rgba(67,214,160,.18); display: inline-block; height: 22px; width: 22px; }
+        .pattern-change .pattern-light { background: #f1c84a; box-shadow: 0 0 0 5px rgba(241,200,74,.18); }
         .risk-label { font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
         .ai-prescription-icon { align-items: center; background: #e2efeb; border-radius: 50%; color: #087f8c; display: inline-flex; font-size: 1.2rem; height: 42px; justify-content: center; width: 42px; }
         .ai-guidance { border-left: 4px solid #168f83; }
-        .sound-control { color: rgba(255,255,255,.85); font-size: .78rem; }
-        @keyframes riskPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .3; transform: scale(.78); } }
-        @media (prefers-reduced-motion: reduce) { .risk-high .risk-light.is-blinking { animation: none; } }
     </style>
     <link rel="stylesheet" href="css/business.css">
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/dashboard-modern.css?v=20261025-12">
+    <script src="js/theme-init.js"></script>
+  <link rel="stylesheet" href="css/app-ui.css?v=20261025-8" />
 </head>
-<body class="bg-light">
+<body class="bg-light modern-dashboard patient-modern-dashboard patient-prediction-page" data-user-name="<?= htmlspecialchars($patient['fullname'], ENT_QUOTES, 'UTF-8') ?>" data-user-role="Patient">
 <div class="container py-4 py-md-5">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
@@ -76,22 +76,20 @@ $chartRows = array_reverse($history);
 
     <div class="alert alert-info">
         <i class="bi bi-info-circle"></i>
-        AI Analytics screens changes in your recent readings. It is not a diagnosis, emergency alert, or replacement for a clinician.
+        This experimental pattern screen compares recorded measurements. It is not a validated risk score, diagnosis, emergency alert, or replacement for a clinician.
     </div>
 
     <section class="card border-0 shadow-sm mb-4 prediction-hero text-white">
         <div class="card-body p-4 p-md-5">
             <div class="row align-items-center g-4">
                 <div class="col-md-7">
-                    <p class="text-white-50 mb-2">Latest AI analysis</p>
-                    <div class="risk-indicator mb-2" id="riskIndicator"><span class="risk-light" id="riskLight"></span><span class="risk-label" id="riskLabel">Checking risk</span></div>
+                    <p class="text-white-50 mb-2">Latest pattern analysis</p>
+                    <div class="risk-indicator mb-2" id="riskIndicator"><span class="pattern-light" id="riskLight"></span><span class="risk-label" id="riskLabel">Checking pattern</span></div>
                     <h2 class="h3" id="predictionTitle">Checking recent readings...</h2>
                     <p class="mb-0" id="predictionMessage">The model is analyzing your personal pattern.</p>
-                    <button type="button" class="btn btn-sm btn-outline-light mt-3 sound-control" id="soundControl"><i class="bi bi-volume-up"></i> Alert sound on</button>
                 </div>
                 <div class="col-md-5 text-md-end">
-                    <div class="score" id="predictionScore">--</div>
-                    <div class="text-white-50">anomaly score / 100</div>
+                    <p class="mb-0 text-white-50">Model output is not a measure of health or clinical risk.</p>
                 </div>
             </div>
         </div>
@@ -129,9 +127,9 @@ $chartRows = array_reverse($history);
             <div class="d-flex align-items-start gap-3">
                 <span class="ai-prescription-icon"><i class="bi bi-prescription2"></i></span>
                 <div class="flex-grow-1">
-                    <h2 class="h5 mb-1">AI care guidance</h2>
-                    <p class="text-muted small mb-3">Personalized next-step suggestions based on your latest pattern. This is not a prescription; confirm any treatment with a qualified clinician.</p>
-                    <ul class="mb-0" id="aiGuidance"><li>Waiting for the latest analysis...</li></ul>
+                    <h2 class="h5 mb-1">General next steps</h2>
+                    <p class="text-muted small mb-3">Use recorded values as context when speaking with a qualified clinician. This screen does not recommend treatment.</p>
+                    <ul class="mb-0" id="aiGuidance"><li>Waiting for the latest pattern analysis...</li></ul>
                 </div>
             </div>
         </div>
@@ -165,95 +163,69 @@ $chartRows = array_reverse($history);
     </div>
 </div>
 <script>
-const labels = <?= json_encode(array_map(static fn($row) => date('M j, H:i', strtotime($row['recorded_at'])), $chartRows)) ?>;
-const chartRows = <?= json_encode($chartRows) ?>;
-let alertSoundEnabled = true;
-let alertSoundContext;
-let alertSoundTimers = [];
+const labels = <?= json_encode(array_map(static fn($row) => date('M j, H:i', strtotime($row['recorded_at'])), $chartRows), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+const chartRows = <?= json_encode($chartRows, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
-function playRiskAlert() {
-    if (!alertSoundEnabled) return;
-    try {
-        alertSoundContext = alertSoundContext || new (window.AudioContext || window.webkitAudioContext)();
-        alertSoundContext.resume();
-        const pattern = [880, 660, 880, 660];
-        let offset = 0;
-        for (let repeat = 0; repeat < 3; repeat += 1) {
-            pattern.forEach(function (frequency) {
-            const duration = .2;
-            const oscillator = alertSoundContext.createOscillator();
-            const gain = alertSoundContext.createGain();
-            const start = alertSoundContext.currentTime + offset;
-            oscillator.frequency.value = frequency;
-            oscillator.type = 'square';
-            gain.gain.setValueAtTime(.0001, start);
-            gain.gain.exponentialRampToValueAtTime(.3, start + .02);
-            gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
-            oscillator.connect(gain).connect(alertSoundContext.destination);
-            oscillator.start(start);
-            oscillator.stop(start + duration + .01);
-                offset += duration + .08;
-            });
-            offset += .25;
+
+const predictionCanvas = document.getElementById('predictionChart');
+if (window.Chart && predictionCanvas) {
+    new Chart(predictionCanvas, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Heart rate', data: chartRows.map(row => row.heart_rate), borderColor: '#43d6a0', tension: 0.25 },
+                { label: 'SpO₂', data: chartRows.map(row => row.spo2), borderColor: '#5b8fe0', tension: 0.25 },
+                { label: 'Temperature', data: chartRows.map(row => row.temperature), borderColor: '#ff8a35', tension: 0.25 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { labels: { usePointStyle: true, boxWidth: 8 } } },
+            scales: { x: { grid: { color: 'rgba(119,123,131,.12)' } }, y: { grid: { color: 'rgba(119,123,131,.12)' } } }
         }
-    } catch (error) {
-        document.getElementById('soundControl').textContent = 'Enable alert sound';
-    }
+    });
+} else if (predictionCanvas) {
+    predictionCanvas.insertAdjacentHTML('beforebegin', '<p class="prediction-chart-empty">The chart library is unavailable. Your recorded readings are still shown below.</p>');
+    predictionCanvas.hidden = true;
 }
 
-document.getElementById('soundControl').addEventListener('click', function () {
-    alertSoundEnabled = !alertSoundEnabled;
-    if (alertSoundEnabled && document.body.classList.contains('risk-high')) playRiskAlert();
-    this.innerHTML = alertSoundEnabled ? '<i class="bi bi-volume-up"></i> Alert sound on' : '<i class="bi bi-volume-mute"></i> Alert sound off';
-});
-
-new Chart(document.getElementById('predictionChart'), {
-    type: 'line',
-    data: {
-        labels,
-        datasets: [
-            { label: 'Heart rate', data: chartRows.map(row => row.heart_rate), borderColor: '#dc3545', tension: 0.25 },
-            { label: 'SpO2', data: chartRows.map(row => row.spo2), borderColor: '#0d6efd', tension: 0.25 },
-            { label: 'Temperature', data: chartRows.map(row => row.temperature), borderColor: '#fd7e14', tension: 0.25 }
-        ]
-    },
-    options: { responsive: true, interaction: { mode: 'index', intersect: false } }
-});
-
-fetch('predict_health.php')
-    .then(response => response.json())
-    .then(result => {
-        if (!result.success) throw new Error(result.error || result.message || 'Prediction unavailable');
+const predictionController = new AbortController();
+const predictionTimeout = window.setTimeout(() => predictionController.abort(), 12000);
+fetch('predict_health.php', { signal: predictionController.signal, headers: { Accept: 'application/json' } })
+    .then(response => response.json().then(result => ({ response, result })))
+    .then(({ response, result }) => {
+        if (!response.ok || !result.success) throw new Error(result.error || result.message || 'Prediction unavailable');
         const labels = {
-            normal: ['Within recent pattern', 'Good'],
-            monitor: ['Monitor recent changes', 'Low risk'],
-            attention: ['Needs clinical attention', 'High risk'],
+            normal: ['Within recent pattern', 'No marked variation'],
+            monitor: ['Some variation from recent pattern', 'Variation'],
+            attention: ['Marked difference from recent pattern', 'Variation'],
             insufficient_data: ['Collecting more readings', 'Insufficient data'],
             unavailable: ['Prediction unavailable', 'Unavailable']
         };
         const [title, status] = labels[result.status] || ['Prediction unavailable', 'Unavailable'];
-        const isGood = result.status === 'normal' || result.status === 'monitor';
-        const isHigh = result.status === 'attention';
-        document.body.classList.toggle('risk-good', isGood);
-        document.body.classList.toggle('risk-high', isHigh);
-        document.getElementById('riskLight').classList.toggle('is-blinking', isHigh);
-        document.getElementById('riskLabel').textContent = isGood ? 'Low risk' : isHigh ? 'High risk alert' : status;
+        const isDifferent = result.status === 'attention' || result.status === 'monitor';
+        document.body.classList.toggle('pattern-change', isDifferent);
+        document.getElementById('riskLabel').textContent = isDifferent ? 'Pattern variation' : status;
         document.getElementById('predictionTitle').textContent = title;
         document.getElementById('predictionStatus').textContent = status;
         document.getElementById('predictionMessage').textContent = result.message;
-        document.getElementById('predictionScore').textContent = result.anomaly_score ?? '--';
         document.getElementById('predictionReadings').textContent = result.readings_used ?? '--';
-        const guidance = isGood
-            ? ['Continue tracking your readings consistently.', 'Keep your normal care and medication routine.', 'Book a clinical review if you notice new symptoms.']
-            : ['Arrange a clinical review if this pattern continues or symptoms appear.', 'Record another complete reading when you are rested and comfortable.', 'Do not start, stop, or change medication from this screen.'];
+        const guidance = ['Review the underlying recorded readings and timestamps.', 'Discuss health concerns or persistent changes with a qualified clinician.'];
         document.getElementById('aiGuidance').innerHTML = guidance.map(item => `<li>${item}</li>`).join('');
-        if (isHigh) playRiskAlert();
     })
     .catch(error => {
         document.getElementById('predictionTitle').textContent = 'Prediction unavailable';
         document.getElementById('predictionStatus').textContent = 'Unavailable';
-        document.getElementById('predictionMessage').textContent = error.message;
-    });
+        document.getElementById('riskLabel').textContent = 'Unavailable';
+        document.getElementById('predictionMessage').textContent = error.name === 'AbortError'
+            ? 'The prediction service did not respond in time. Try again later.'
+            : (error.message || 'The prediction service could not complete this analysis.');
+        document.getElementById('aiGuidance').textContent = 'No pattern summary is available until the prediction service responds.';
+    })
+    .finally(() => window.clearTimeout(predictionTimeout));
 </script>
     <script src="js/design-switch.js"></script>
 </body>

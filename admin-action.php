@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/db_connection.php';
 
 if (empty($_SESSION['admin_authenticated'])) {
@@ -9,6 +9,11 @@ if (empty($_SESSION['admin_authenticated'])) {
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: admin-dashboard.php');
+    exit();
+}
+
+if (!isset($_SESSION['admin_csrf']) || !hash_equals($_SESSION['admin_csrf'], (string) ($_POST['admin_csrf'] ?? ''))) {
+    header('Location: admin-dashboard.php?error=invalid_request');
     exit();
 }
 

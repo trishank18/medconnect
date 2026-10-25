@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="Patient Login - MedConnect"/>
   <title>Patient Login - MedConnect</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=20261025-2" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <script src="js/theme-init.js"></script>
+  <link rel="stylesheet" href="css/app-ui.css?v=20261025-8" />
 </head>
 <body class="login-page">
 
@@ -14,7 +17,9 @@
     <div class="login-container">
     <h2>👤 Patient Login</h2>
     <div id="login-status" class="login-status" role="alert" hidden></div>
-    <form action="patient/login_patient.php" method="POST">
+    <form action="patient/login_patient.php" method="POST" data-csrf-form="patient_login">
+      <input type="hidden" name="csrf_token" value="" />
+      <p class="form-note" data-form-csrf-error role="alert"></p>
       <input type="text" placeholder="Username" name="username" required autocomplete="username" />
       <span class="password-field"><input id="patient-password" type="password" placeholder="Password" name="password" required autocomplete="current-password" /><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false" data-password-target="patient-password">&#128065;</button></span>
       <button type="submit" class="btn login-btn">Login</button>
@@ -29,13 +34,17 @@
     const query = new URLSearchParams(window.location.search);
     const statusMessages = {
       invalid_credentials: ['Login failed', 'The username or password is incorrect.'],
-      user_not_found: ['Account not found', 'No patient account was found with that username.'],
+      invalid_request: ['Security check expired', 'Refresh the page and try signing in again.'],
       database_error: ['Login unavailable', 'We could not verify your account right now. Please try again.']
     };
     const statusKey = query.get('error');
 
     if (query.get('reset') === 'success') {
       loginStatus.innerHTML = '<strong>Password updated</strong><br>Your password has been reset successfully. You can now sign in with your new password.';
+      loginStatus.classList.add('login-status-success');
+      loginStatus.hidden = false;
+    } else if (query.get('registration') === 'success') {
+      loginStatus.innerHTML = '<strong>Account created</strong><br>Your patient account is ready. Sign in to continue.';
       loginStatus.classList.add('login-status-success');
       loginStatus.hidden = false;
     } else if (statusMessages[statusKey]) {
@@ -52,6 +61,7 @@
       this.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
     });
   </script>
+  <script src="js/form-csrf.js"></script>
   <script src="js/design-switch.js"></script>
 </body>
 </html>

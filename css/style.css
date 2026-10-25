@@ -88,7 +88,6 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Segoe UI', 'Roboto', sans-serif;
 }
 
 :root {
@@ -1900,6 +1899,87 @@ body.glass-theme .container {
   -webkit-backdrop-filter: blur(18px);
 }
 body.glass-theme .landing-hero { background-image: linear-gradient(90deg, rgba(18, 48, 68, .72), rgba(18, 48, 68, .2)), url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1800&q=85') !important; }
+
+/* User-controlled dark theme */
+body.dark-theme {
+  background: #101a22 !important;
+  color: #d9e7eb;
+  color-scheme: dark;
+}
+body.dark-theme.welcome-page,
+body.dark-theme.app-page,
+body.dark-theme.role-page,
+body.dark-theme.login-page {
+  background: #101a22 !important;
+  color: #d9e7eb;
+}
+body.dark-theme.welcome-page::before,
+body.dark-theme.app-page::before,
+body.dark-theme.role-page::before,
+body.dark-theme.login-page::before {
+  background: radial-gradient(circle at 8% 10%, rgba(22, 145, 132, .16), transparent 28%), radial-gradient(circle at 92% 85%, rgba(221, 143, 62, .12), transparent 26%), repeating-linear-gradient(90deg, transparent 0 79px, rgba(190, 220, 225, .035) 80px);
+}
+body.dark-theme .landing-nav,
+body.dark-theme .landing-intro,
+body.dark-theme .landing-proof,
+body.dark-theme .landing-footer {
+  border-color: #2a414a;
+}
+body.dark-theme .brand-mark,
+body.dark-theme .role-slide-copy h1,
+body.dark-theme .about-copy h2,
+body.dark-theme .landing-intro h2,
+body.dark-theme .landing-proof,
+body.dark-theme .landing-footer,
+body.dark-theme .role-slide-copy p:not(.eyebrow),
+body.dark-theme .role-position {
+  color: #d9e7eb;
+}
+body.dark-theme .feature-card,
+body.dark-theme .about-section,
+body.dark-theme .app-role-card,
+body.dark-theme .role-slide,
+body.dark-theme .login-container {
+  background: #182832 !important;
+  border-color: #2d4852;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, .28);
+}
+body.dark-theme .about-section { background: #1b3437 !important; }
+body.dark-theme .login-container input,
+body.dark-theme .login-container select {
+  background: #101a22;
+  border-color: #3b5962;
+  color: #e5f1f3;
+}
+body.dark-theme .role-switch { border-color: #3b5962; color: #a9c1c6; }
+body.dark-theme .role-switch.is-active { color: #e5f1f3; }
+body.dark-theme .role-arrow { background: #182832; border-color: #3b5962; color: #d9e7eb; }
+body.dark-theme .role-arrow:hover { background: #087f8c; border-color: #087f8c; color: #fff; }
+body.dark-theme .switch-link { color: #a9c1c6; }
+body.dark-theme .switch-link a { color: #55c7c4; }
+
+.dark-mode-switch {
+  align-items: center;
+  background: rgba(18, 48, 68, .92);
+  border: 1px solid rgba(255, 255, 255, .24);
+  border-radius: 999px;
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font: 600 .78rem 'DM Sans', sans-serif;
+  gap: 7px;
+  padding: 8px 12px;
+  position: fixed;
+  right: 156px;
+  top: 18px;
+  z-index: 1080;
+}
+.dark-mode-switch:hover { background: #087f8c; }
+.dark-mode-switch[aria-pressed="true"] { background: #e7b75c; border-color: #e7b75c; color: #182832; }
+@media (max-width: 767px) {
+  .dark-mode-switch { right: 12px; top: 52px; }
+  .dark-mode-switch-label { display: none; }
+}
 
 /* Shared hospital identity */
 body.welcome-page,

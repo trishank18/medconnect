@@ -1,0 +1,301 @@
+/* MedConnect UI bridge: extends the dashboard design system to every route. */
+:root {
+  --bg: #080a0d;
+  --sidebar: #101113;
+  --card: #131416;
+  --card-elevated: #191a1d;
+  --border: #292b2e;
+  --text-primary: #e8eaed;
+  --text-secondary: #9a9da3;
+  --text-muted: #777b83;
+  --green: #43d6a0;
+  --blue: #5b8fe0;
+  --orange: #ff8a35;
+  --purple: #b49aff;
+  --red: #ff646c;
+  --yellow: #f1c84a;
+  --app-bg: var(--bg);
+  --app-surface: var(--card);
+  --app-elevated: var(--card-elevated);
+  --app-line: var(--border);
+  --app-text: var(--text-primary);
+  --app-muted: var(--text-muted);
+  --app-accent: var(--green);
+}
+
+html:not(.dark-theme) {
+  --bg: #f3f6f6;
+  --sidebar: #ffffff;
+  --card: #ffffff;
+  --card-elevated: #f7f9fa;
+  --border: #d9e0e2;
+  --text-primary: #17252f;
+  --text-secondary: #52646b;
+  --text-muted: #718087;
+  --app-bg: #f3f6f6;
+  --app-surface: #ffffff;
+  --app-elevated: #f7f9fa;
+  --app-line: #d9e0e2;
+  --app-text: #17252f;
+  --app-muted: #65767c;
+  --app-accent: #087f8c;
+}
+
+html { color-scheme: dark; }
+html:not(.dark-theme) { color-scheme: light; }
+
+body:not(.modern-dashboard) {
+  background: var(--app-bg) !important;
+  color: var(--app-text);
+  font-family: Inter, "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+body.login-page { display: block; height: auto; min-height: 100vh; }
+
+body:not(.modern-dashboard)::before {
+  background: radial-gradient(ellipse at 16% 0%, rgba(67, 214, 160, .07), transparent 34%),
+              radial-gradient(ellipse at 92% 84%, rgba(91, 143, 224, .055), transparent 30%);
+}
+
+body.modern-dashboard { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+
+/* Authentication, role selection, and app entry */
+body.login-page .auth-layout,
+body.login-page .login-container,
+body.role-page .role-container,
+body.app-page .app-role-card,
+body.welcome-page .feature-card,
+body.welcome-page .about-values > div {
+  background: var(--app-surface);
+  border: 1px solid var(--app-line);
+  border-radius: 16px;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, .18);
+  color: var(--app-text);
+}
+
+body.login-page .auth-layout {
+  box-sizing: border-box;
+  border-radius: 20px;
+  grid-template-columns: minmax(260px, .9fr) minmax(330px, 1fr);
+  max-width: 980px;
+  margin: 0 auto;
+}
+body.login-page .auth-layout * { box-sizing: border-box; }
+body.login-page .auth-layout > * { min-width: 0; }
+
+body.login-page .auth-visual {
+  background: linear-gradient(145deg, #122b2a, #101a22 75%);
+}
+
+body.login-page .auth-visual::after {
+  background: linear-gradient(180deg, rgba(8, 10, 13, .05), rgba(8, 10, 13, .84));
+}
+
+body.login-page .auth-visual .eyebrow { color: var(--green); }
+body.login-page .auth-mark { background: var(--green); color: #08110e; }
+body.login-page .auth-layout .login-container { background: transparent; border: 0; box-shadow: none; }
+body.login-page .login-container h2,
+body.login-page .login-container h1 { color: var(--text-primary); font-family: inherit; }
+body.login-page .login-container p,
+body.login-page .form-note,
+body.login-page .switch-link { color: var(--text-secondary); }
+
+body.login-page .login-container form { display: grid; gap: 12px; }
+body.login-page .login-container form input,
+body.login-page .login-container form select,
+body.login-page .login-container form textarea,
+body.login-page .password-field input {
+  background: var(--app-elevated);
+  border: 1px solid var(--app-line);
+  border-radius: 10px;
+  color: var(--app-text);
+  font: inherit;
+  margin: 0;
+  min-height: 46px;
+  padding: 11px 13px;
+  width: 100%;
+}
+
+body.login-page .login-container form input::placeholder { color: var(--app-muted); }
+body.login-page .login-container form input:focus,
+body.login-page .login-container form select:focus { border-color: var(--app-accent); box-shadow: 0 0 0 3px rgba(67, 214, 160, .14); outline: 0; }
+body.login-page .login-container .btn,
+body.login-page .login-btn {
+  background: var(--app-accent);
+  border: 1px solid var(--app-accent);
+  border-radius: 10px;
+  color: #07110d;
+  cursor: pointer;
+  font: 700 .9rem Inter, sans-serif;
+  min-height: 44px;
+  text-transform: none;
+  width: 100%;
+}
+body.login-page .login-container .btn:hover,
+body.login-page .login-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+body.login-page .login-container .switch-link a { color: var(--app-accent); }
+body.login-page .login-status { border-radius: 10px; }
+body.login-page .password-field { display: flex; }
+body.login-page .password-field .password-toggle { background: transparent; color: var(--text-secondary); }
+
+/* Landing page: keep its real content and imagery, with the application palette. */
+body.welcome-page .brand-mark,
+body.app-page .brand-mark,
+body.role-page .brand-mark { color: var(--app-text); }
+body.welcome-page .brand-mark span,
+body.app-page .brand-mark span,
+body.role-page .brand-mark span { background: var(--green); color: #07110d; }
+body.welcome-page .landing-nav,
+body.role-page .landing-nav,
+body.app-page .landing-nav { color: var(--app-text); }
+body.welcome-page .landing-intro h2,
+body.welcome-page .about-copy h2,
+body.welcome-page .proof-stat strong,
+body.welcome-page .proof-copy p:last-child { color: var(--text-primary); }
+body.welcome-page .landing-intro > p,
+body.welcome-page .feature-body p,
+body.welcome-page .about-copy > p,
+body.welcome-page .proof-stat span,
+body.welcome-page .landing-footer p { color: var(--text-secondary); }
+body.welcome-page .feature-card,
+body.welcome-page .about-values > div { background: var(--app-surface); border-color: var(--app-line); }
+body.welcome-page .feature-body h3,
+body.welcome-page .about-values strong { color: var(--text-primary); }
+body.welcome-page .landing-proof { border-color: var(--app-line); }
+body.welcome-page .proof-stat { border-color: var(--app-line); }
+body.welcome-page .landing-footer .btn { background: transparent; border-color: var(--app-line); color: var(--text-primary); }
+body.welcome-page .landing-footer .btn:hover { background: var(--app-elevated); }
+body.welcome-page .app-switch-link,
+body.welcome-page .nav-link,
+body.app-page .app-switch-link,
+body.role-page .nav-link { color: var(--green); }
+body.welcome-page .eyebrow,
+body.app-page .eyebrow,
+body.role-page .eyebrow { color: var(--green); }
+body.role-page .role-slider { border: 1px solid var(--app-line); box-shadow: 0 18px 46px rgba(0, 0, 0, .2); }
+body.role-page .role-slide { background: var(--app-surface); }
+body.role-page .role-slide-copy h1 { color: var(--text-primary); font-family: inherit; }
+body.role-page .role-slide-copy p:not(.eyebrow) { color: var(--text-secondary); }
+body.role-page .role-action { background: var(--green); border-color: var(--green); color: #07110d; }
+body.role-page .role-action:hover { background: #58e1b0; }
+body.role-page .role-switch { border-color: var(--app-line); color: var(--text-secondary); }
+body.role-page .role-switch.is-active { border-color: var(--green); color: var(--green); }
+body.role-page .role-position { color: var(--text-secondary); }
+body.app-page .app-role-card { border-radius: 14px; }
+body.app-page .app-role-card-dark { background: #153a35; border-color: rgba(67, 214, 160, .4); }
+body.app-page .app-role-card strong { color: var(--text-primary); }
+body.app-page .app-role-card small,
+body.app-page .app-note,
+body.app-page .app-intro > p:last-child { color: var(--text-secondary); }
+body.app-page .app-role-icon { background: rgba(67, 214, 160, .16); color: var(--green); }
+
+/* Patient/doctor utility pages (forms, reports, assistant, prescription view). */
+body.bg-light:not(.modern-dashboard) {
+  color: var(--app-text);
+  display: block;
+  height: auto;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body.bg-light:not(.modern-dashboard) > .container { color: var(--app-text); }
+body.bg-light:not(.modern-dashboard) .card,
+body.bg-light:not(.modern-dashboard) .modal-content,
+body.bg-light:not(.modern-dashboard) .dropdown-menu,
+body.bg-light:not(.modern-dashboard) .list-group-item {
+  background: var(--app-surface) !important;
+  border-color: var(--app-line) !important;
+  color: var(--app-text);
+}
+body.bg-light:not(.modern-dashboard) .card-header,
+body.bg-light:not(.modern-dashboard) .table thead th { background: var(--app-elevated) !important; color: var(--app-text); }
+body.bg-light:not(.modern-dashboard) h1,
+body.bg-light:not(.modern-dashboard) h2,
+body.bg-light:not(.modern-dashboard) h3,
+body.bg-light:not(.modern-dashboard) h4,
+body.bg-light:not(.modern-dashboard) h5,
+body.bg-light:not(.modern-dashboard) h6,
+body.bg-light:not(.modern-dashboard) .form-label { color: var(--app-text); }
+body.bg-light:not(.modern-dashboard) .text-muted,
+body.bg-light:not(.modern-dashboard) .form-text { color: var(--app-muted) !important; }
+body.bg-light:not(.modern-dashboard) .form-control,
+body.bg-light:not(.modern-dashboard) .form-select,
+body.bg-light:not(.modern-dashboard) textarea {
+  background: var(--app-elevated);
+  border: 1px solid var(--app-line);
+  color: var(--app-text);
+}
+body.bg-light:not(.modern-dashboard) .form-control:focus,
+body.bg-light:not(.modern-dashboard) .form-select:focus,
+body.bg-light:not(.modern-dashboard) textarea:focus { border-color: var(--app-accent); box-shadow: 0 0 0 3px rgba(67, 214, 160, .13); }
+body.bg-light:not(.modern-dashboard) .table { --bs-table-bg: var(--app-surface); --bs-table-color: var(--app-text); --bs-table-border-color: var(--app-line); --bs-table-striped-bg: var(--app-elevated); --bs-table-hover-bg: rgba(67, 214, 160, .07); }
+body.bg-light:not(.modern-dashboard) .btn { border-radius: 9px; font-weight: 650; min-height: 40px; }
+body.bg-light:not(.modern-dashboard) .btn-success,
+body.bg-light:not(.modern-dashboard) .btn-primary { background: var(--app-accent); border-color: var(--app-accent); color: #07110d; }
+body.bg-light:not(.modern-dashboard) .btn-outline-secondary { border-color: var(--app-line); color: var(--app-text); }
+body.bg-light:not(.modern-dashboard) .btn-outline-secondary:hover { background: var(--app-elevated); color: var(--app-text); }
+body.bg-light:not(.modern-dashboard) .health-assistant { background: var(--app-surface); border-color: var(--app-line); color: var(--app-text); }
+body.bg-light:not(.modern-dashboard) .health-assistant-header { background: #183a3a; }
+body.bg-light:not(.modern-dashboard) .health-assistant-messages { background: var(--app-bg); }
+body.bg-light:not(.modern-dashboard) .health-assistant-message.model { background: var(--app-elevated); border-color: var(--app-line); color: var(--app-text); }
+body.bg-light:not(.modern-dashboard) .health-assistant-form { background: var(--app-surface); border-color: var(--app-line); }
+body.bg-light:not(.modern-dashboard) .health-assistant-form input { background: var(--app-elevated); border-color: var(--app-line); color: var(--app-text); }
+body.bg-light:not(.modern-dashboard) .health-assistant-note { color: var(--app-muted); }
+
+/* Administrator dashboard and CSV actions */
+body.admin-page.modern-dashboard .export-links { display: flex; flex-wrap: wrap; gap: .55rem; }
+body.admin-page.modern-dashboard .export-links .btn { margin: 0; }
+body.admin-page.modern-dashboard .export-links .btn-secondary { background: var(--card-elevated); border-color: var(--border); color: var(--text-primary); }
+body.admin-page.modern-dashboard .export-links .btn-secondary:hover { border-color: var(--green); color: var(--green); }
+
+/* Theme-aware sidebar shell and accessible controls */
+.design-switch,
+.dark-mode-switch {
+  background: var(--app-surface) !important;
+  border: 1px solid var(--app-line) !important;
+  color: var(--app-text) !important;
+}
+.design-switch {
+  align-items: center;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  font: 600 .78rem Inter, sans-serif;
+  gap: 7px;
+  padding: 8px 12px;
+  position: fixed;
+  right: 20px;
+  top: 18px;
+  z-index: 1080;
+}
+.design-switch:hover,
+.dark-mode-switch:hover { border-color: var(--app-accent) !important; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 700px) {
+  body.login-page .auth-layout {
+    grid-template-columns: minmax(0, 1fr);
+    margin-inline: auto;
+    max-width: min(calc(100vw - 32px), 340px);
+    min-width: 0;
+    width: min(calc(100vw - 32px), 340px);
+  }
+  body.login-page .auth-layout > * { max-width: 100%; min-width: 0; width: 100%; }
+  body.login-page .auth-visual { min-height: 200px; min-width: 0; padding: 24px; }
+  body.login-page .auth-visual h1 { font-size: 1.55rem; max-width: 100%; overflow-wrap: anywhere; }
+  body.login-page .login-container { max-width: 100%; min-width: 0; padding: 24px 18px; width: 100%; }
+  body.login-page .login-container form { grid-template-columns: minmax(0, 1fr); max-width: 100%; min-width: 0; width: 100%; }
+  body.login-page .login-container form > * { max-width: 100%; min-width: 0; }
+  body.login-page .login-container form input { max-width: 100%; min-width: 0; }
+  .design-switch { right: 12px; top: 12px; }
+  .design-switch-label { display: none; }
+  body.welcome-page .landing-shell { width: min(100% - 28px, 1180px); }
+  body.welcome-page .hero-copy { padding: 36px 24px; }
+  body.role-page .role-shell { width: calc(100% - 24px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

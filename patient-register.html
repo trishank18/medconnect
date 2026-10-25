@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="Patient Registration - MedConnect"/>
   <title>Patient Registration - MedConnect</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=20261025-2" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <script src="js/theme-init.js"></script>
+  <link rel="stylesheet" href="css/app-ui.css?v=20261025-8" />
 </head>
 <body class="login-page">
 
@@ -13,19 +16,39 @@
     <aside class="auth-visual"><span class="auth-mark" aria-hidden="true">&#9825;</span><p class="eyebrow">Welcome to MedConnect</p><h1>Your health journey, all in one place.</h1><img src="https://images.unsplash.com/photo-1538108149393-fbbd81895907?auto=format&fit=crop&w=900&q=85" alt="Patient receiving care in a hospital"></aside>
     <div class="login-container">
     <h2>👤 Patient Registration</h2>
-    <form action="patient/register_patient.php" method="POST">
-      <input type="text" name="fullname" placeholder="Full Name" required />
-      <input type="email" name="email" placeholder="Email" required />
-      <input type="tel" name="phone" placeholder="Phone Number" required />
+    <div id="register-status" class="login-status" role="alert" hidden></div>
+    <form action="patient/register_patient.php" method="POST" data-csrf-form="patient_register">
+      <input type="hidden" name="csrf_token" value="" />
+      <p class="form-note" data-form-csrf-error role="alert"></p>
+      <input type="text" name="fullname" placeholder="Full Name" maxlength="100" required />
+      <input type="email" name="email" placeholder="Email" maxlength="100" required />
+      <input type="tel" name="phone" placeholder="Phone Number" maxlength="20" required />
       <input type="number" name="age" placeholder="Age" required min="1" max="150" />
-      <input type="text" name="username" placeholder="Username" required />
-      <input type="password" name="password" placeholder="Password" required />
+      <input type="text" name="username" placeholder="Username" maxlength="50" required />
+      <input type="password" name="password" placeholder="Password (8 or more characters)" required minlength="8" maxlength="200" autocomplete="new-password" />
+      <input type="password" name="confirm_password" placeholder="Confirm password" required minlength="8" maxlength="200" autocomplete="new-password" />
       <button type="submit" class="btn login-btn">Register</button>
       <p class="switch-link">Already have an account? <a href="patient-login.html">Login here</a></p>
     </form>
     </div>
   </div>
 
+  <script>
+    const registrationMessages = {
+      invalid_request: 'This registration form expired. Refresh the page and try again.',
+      invalid_input: 'Check your details. Use a valid email, phone number, age, username, and matching passwords.',
+      duplicate_entry: 'That email or username is already registered.',
+      database_error: 'Registration is temporarily unavailable. Please try again.'
+    };
+    const registrationError = new URLSearchParams(location.search).get('error');
+    if (registrationMessages[registrationError]) {
+      const status = document.getElementById('register-status');
+      status.textContent = registrationMessages[registrationError];
+      status.classList.add('login-status-error');
+      status.hidden = false;
+    }
+  </script>
+  <script src="js/form-csrf.js"></script>
   <script src="js/design-switch.js"></script>
 </body>
 </html>

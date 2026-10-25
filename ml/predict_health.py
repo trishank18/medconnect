@@ -1,4 +1,5 @@
 import json
+import math
 import sys
 
 
@@ -27,11 +28,13 @@ def main():
             "blood_pressure_sys",
             "blood_pressure_dia",
         ]
-        usable = [
-            [float(record[name]) for name in feature_names]
-            for record in records
-            if all(record.get(name) is not None for name in feature_names)
-        ]
+        usable = []
+        for record in records:
+            if not all(record.get(name) is not None for name in feature_names):
+                continue
+            values = [float(record[name]) for name in feature_names]
+            if all(math.isfinite(value) for value in values):
+                usable.append(values)
     except (ValueError, TypeError, KeyError, json.JSONDecodeError):
         respond({"success": False, "status": "error", "message": "Invalid health metric data."})
         return
@@ -41,6 +44,25 @@ def main():
             "success": True,
             "status": "insufficient_data",
             "message": "At least 5 complete readings are needed before the model can screen for anomalies.",
+            "readings_used": len(usable)
+        })
+        return
+
+    # Do not silently screen an older complete record as if it were the latest
+    # when the newest stored reading is incomplete.
+    latest = records[-1] if records else None
+    latest_is_complete = bool(latest) and all(latest.get(name) is not None for name in feature_names)
+    latest_is_finite = False
+    if latest_is_complete:
+        try:
+            latest_is_finite = all(math.isfinite(float(latest[name])) for name in feature_names)
+        except (ValueError, TypeError):
+            latest_is_finite = False
+    if not latest_is_finite:
+        respond({
+            "success": True,
+            "status": "insufficient_data",
+            "message": "The most recent stored reading is incomplete, so no pattern comparison is shown.",
             "readings_used": len(usable)
         })
         return
@@ -55,14 +77,12 @@ def main():
         model.fit(scaled)
         prediction = int(model.predict([scaled[-1]])[0])
         raw_score = float(model.decision_function([scaled[-1]])[0])
-        anomaly_score = max(0.0, min(100.0, round((0.5 - raw_score) * 100, 1)))
-
         if prediction == -1:
             level = "attention"
-            message = "The latest reading differs from this patient's recent pattern. Consider clinical review."
-        elif anomaly_score >= 25:
+            message = "The latest reading differs from recent measurements. This screen cannot determine its medical significance."
+        elif raw_score < 0.25:
             level = "monitor"
-            message = "The latest reading is somewhat different from this patient's recent pattern."
+            message = "The latest reading varies from recent measurements. This screen cannot determine its medical significance."
         else:
             level = "normal"
             message = "The latest reading is consistent with this patient's recent pattern."
@@ -71,12 +91,11 @@ def main():
             "success": True,
             "status": level,
             "message": message,
-            "anomaly_score": anomaly_score,
             "readings_used": len(usable),
             "disclaimer": "This is an anomaly screen, not a diagnosis."
         })
-    except (ValueError, RuntimeError) as error:
-        respond({"success": False, "status": "error", "message": str(error)})
+    except (ValueError, RuntimeError):
+        respond({"success": False, "status": "error", "message": "The experimental pattern analysis could not be completed."})
 
 
 if __name__ == "__main__":

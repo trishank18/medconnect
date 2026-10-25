@@ -1,8 +1,9 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/db_connection.php';
 require_once __DIR__ . '/includes/admin_auth.php';
 
+$_SESSION['admin_reset_csrf'] ??= bin2hex(random_bytes(32));
 $message = '';
 $error = '';
 
@@ -10,6 +11,10 @@ try {
     $credentials = get_admin_credentials($conn);
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!hash_equals($_SESSION['admin_reset_csrf'], (string) ($_POST['admin_reset_csrf'] ?? ''))) {
+            http_response_code(403);
+            exit('This reset form expired. Reload the page and try again.');
+        }
         $currentUsername = trim($_POST['current_username'] ?? '');
         $currentPassword = $_POST['current_password'] ?? '';
         $newUsername = trim($_POST['new_username'] ?? '');
@@ -27,6 +32,8 @@ try {
             $error = 'The new passwords do not match.';
         } else {
             save_admin_credentials($conn, $newUsername, password_hash($newPassword, PASSWORD_DEFAULT));
+            unset($_SESSION['admin_reset_csrf']);
+            session_regenerate_id(true);
             $message = 'Admin credentials updated. Use the new username and password to sign in.';
         }
     }
@@ -40,7 +47,10 @@ try {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reset Admin Credentials - MedConnect</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=20261025-2" />
+  <link rel="stylesheet" href="css/theme.css" />
+  <script src="js/theme-init.js"></script>
+  <link rel="stylesheet" href="css/app-ui.css?v=20261025-8" />
 </head>
 <body class="login-page admin-login-page">
   <div class="auth-layout">
@@ -51,6 +61,7 @@ try {
       <?php if ($message): ?><p class="form-note"><?= htmlspecialchars($message) ?></p><?php endif; ?>
       <?php if ($error): ?><p class="form-note"><?= htmlspecialchars($error) ?></p><?php endif; ?>
       <form method="POST">
+        <input type="hidden" name="admin_reset_csrf" value="<?= htmlspecialchars($_SESSION['admin_reset_csrf'], ENT_QUOTES, 'UTF-8') ?>" />
         <input type="text" placeholder="Current username" name="current_username" required autocomplete="username" />
         <input type="password" placeholder="Current password" name="current_password" required autocomplete="current-password" />
         <input type="text" placeholder="New username" name="new_username" required autocomplete="username" />

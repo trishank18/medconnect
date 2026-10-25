@@ -1,5 +1,11 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/session.php';
+if ($_SERVER['REQUEST_METHOD'] !== 'POST'
+    || !isset($_SESSION['csrf_admin_login'])
+    || !hash_equals($_SESSION['csrf_admin_login'], (string) ($_POST['csrf_token'] ?? ''))) {
+    header('Location: admin-login.html?error=invalid_request');
+    exit();
+}
 require_once __DIR__ . '/includes/db_connection.php';
 require_once __DIR__ . '/includes/admin_auth.php';
 
@@ -18,6 +24,11 @@ if ($configuredUsername !== '' && $configuredPasswordHash !== ''
     && hash_equals($configuredUsername, $username)
     && password_verify($password, $configuredPasswordHash)) {
     session_regenerate_id(true);
+    unset(
+        $_SESSION['patient_id'], $_SESSION['patient_name'], $_SESSION['patient_csrf'],
+        $_SESSION['doctor_id'], $_SESSION['doctor_name'], $_SESSION['doctor_csrf'],
+        $_SESSION['admin_authenticated'], $_SESSION['admin_username'], $_SESSION['admin_csrf']
+    );
     $_SESSION['admin_authenticated'] = true;
     $_SESSION['admin_username'] = $username;
     header('Location: admin-dashboard.php');

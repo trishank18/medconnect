@@ -11,5 +11,6 @@ CREATE TABLE IF NOT EXISTS ml_predictions (
     PRIMARY KEY (id),
     KEY idx_ml_predictions_patient_time (patient_id, prediction_timestamp),
     KEY idx_ml_predictions_target_time (patient_id, target_name, target_timestamp),
+    UNIQUE KEY uq_ml_predictions_request (patient_id, target_name, model_version, prediction_timestamp),
     CONSTRAINT fk_ml_predictions_patient FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
