@@ -1970,7 +1970,7 @@ body.dark-theme .switch-link a { color: #55c7c4; }
   gap: 7px;
   padding: 8px 12px;
   position: fixed;
-  right: 156px;
+  right: 20px;
   top: 18px;
   z-index: 1080;
 }

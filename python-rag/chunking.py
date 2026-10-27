@@ -52,9 +52,13 @@ def chunk_document(text: str, size: int = 900, overlap: int = 120) -> list[dict]
         block = block.strip()
         if not block:
             continue
-        match = re.match(r"^(#{1,6})\s+(.+)$", block)
+        match = re.match(r"^(#{1,6})\s+([^\n]+)(?:\n|$)", block)
         if match:
             heading = match.group(2).strip()
+            block = block[match.end():].strip()
+            if not block:
+                # Headings are context metadata; do not create heading-only vectors.
+                continue
         sections.append((heading, block))
     result = []
     for heading, block in sections:

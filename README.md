@@ -15,7 +15,7 @@ MedConnect is a local IoT-enabled health-monitoring platform for patients, docto
 - SMS password recovery through Twilio
 - Authenticated RAG health assistant with approved-document sources
 - Database-backed assistant fallbacks for readings, appointments, doctors, departments, prescriptions, and analytics guidance
-- Gemini general-information fallback for questions outside the approved project documents
+- Direct Gemini responses for general-information questions
 
 ## Dashboard theme and navigation
 
@@ -24,7 +24,7 @@ The shared dashboard presentation is provided by:
 - `css/theme.css` for dark/light design tokens, responsive sidebar, cards, forms, tables, focus states, and reduced-motion behavior
 - `css/app-ui.css` for the shared dashboard visual language on public, authentication, utility, and content pages
 - `js/theme-init.js` for early theme application before page content renders
-- `js/design-switch.js` for the accessible persisted dark/light and Glass/Minimal controls
+- `js/design-switch.js` for the accessible persisted dark/light control
 - `js/dashboard-shell.js` for the responsive patient, doctor, and administrator sidebar
 
 Dark mode is the default. The selected mode is stored in the browser under
@@ -59,7 +59,7 @@ does not add fake features or data.
 - **FastAPI and Uvicorn**: local API at `127.0.0.1:8000`
 - **sentence-transformers**: document embeddings using `all-MiniLM-L6-v2`
 - **FAISS**: normalized-vector similarity search
-- **Google Gemini API**: grounded answer generation and general-information fallback
+- **Google Gemini API**: grounded MedConnect answers, mixed questions, and direct general-information responses
 - **python-dotenv**: environment configuration
 - **PyMuPDF**: PDF text extraction during ingestion
 
@@ -83,10 +83,11 @@ Apache/PHP dashboard
           |-- token validation
           |-- approved-document retrieval
           |-- Gemini grounded generation
-          `-- Gemini general fallback when no document matches
+          |-- direct Gemini route for general questions
+          `-- sanitized, source-aware response
 ```
 
-Patient readings, appointments, and prescriptions are answered by scoped PHP/MySQL queries. Private readings and patient identifiers are not sent to Gemini. Knowledge questions use only approved indexed documents. Questions without a relevant document may use the explicitly labelled Gemini general-information fallback.
+Patient readings, appointments, and prescriptions are answered by scoped PHP/MySQL queries. Private readings and patient identifiers are not sent to Gemini, the vector index, or Python conversation history. MedConnect questions use approved indexed documents; missing evidence is reported without inventing application facts. Programming and other general questions go directly to Gemini without retrieval. Requests for private records are denied by the Python boundary if they reach it.
 
 ## RAG design
 
@@ -133,8 +134,8 @@ Embeddings are normalized and stored in a FAISS inner-product index. Because vec
 2. The same embedding model creates a query vector.
 3. FAISS returns the top `RAG_TOP_K` chunks.
 4. Results below `RAG_MIN_SIMILARITY` are discarded.
-5. Relevant excerpts are sent to Gemini with instructions to answer only from those excerpts.
-6. The PHP UI displays the answer and verified document/page sources.
+5. MedConnect excerpts are sent to Gemini with instructions to answer only from those excerpts; general questions skip steps 1–5 and go directly to Gemini.
+6. The PHP UI displays the answer and source metadata returned for the excerpts actually used.
 
 The index is local and generated. It is excluded from Git:
 
@@ -143,15 +144,12 @@ python-rag/data/knowledge.faiss
 python-rag/data/chunks.json
 ```
 
-### Fallback order
+### Routing
 
-The assistant uses this order:
-
-1. Greeting and clarification responses
-2. Authenticated PHP/MySQL fallbacks for private application data
-3. Approved-document RAG retrieval and grounded Gemini response
-4. Gemini general-information fallback when no approved document matches
-5. Sanitized temporary-unavailability response if Gemini is unavailable
+1. PHP checks the authenticated role, CSRF token, and question size.
+2. Private data requests are answered only through PHP's parameterized, role-scoped MySQL queries. A doctor-selected patient is checked against assignment/appointment authorization on each request.
+3. Python classifies non-private requests locally. MedConnect facts use RAG; general questions use Gemini directly; unsupported MedConnect facts receive a non-fabricated verification response; private or ambiguous data requests are denied.
+4. Gemini/provider failures return a sanitized temporary error, never an invented answer. Follow-up history is bounded, expires, and contains only non-private Python conversations.
 
 ## Requirements
 
@@ -196,8 +194,10 @@ read me .txt\migrate-verification.sql
 Copy the root environment template:
 
 ```powershell
-Copy-Item .env.example .env
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
+
+If `.env` already exists, keep it and add/update only the required values; do not replace it with the template.
 
 Set the values in `.env`:
 
@@ -256,7 +256,7 @@ For an isolated RAG environment:
 ```powershell
 py -m venv python-rag\.venv
 .\python-rag\.venv\Scripts\Activate.ps1
-py -m pip install -r python-rag\requirements.txt
+python -m pip install -r python-rag\requirements.txt
 ```
 
 ### 5. Build the RAG index
@@ -264,14 +264,14 @@ py -m pip install -r python-rag\requirements.txt
 After adding or changing approved documents:
 
 ```powershell
-py python-rag\ingest.py
+python-rag\.venv\Scripts\python.exe python-rag\ingest.py
 ```
 
 Rebuild the index whenever documents change. Ingestion replaces the generated index so removed documents are not retained.
 
 ### 6. Start the RAG service
 
-Use the Windows helper:
+Use the Windows helper, or run Uvicorn from the isolated environment:
 
 ```powershell
 .\run-rag.cmd
@@ -280,7 +280,7 @@ Use the Windows helper:
 Or start it manually:
 
 ```powershell
-py -m uvicorn app:app --app-dir python-rag --host 127.0.0.1 --port 8000
+python -m uvicorn app:app --app-dir python-rag --host 127.0.0.1 --port 8000
 ```
 
 Verify service health:
@@ -335,7 +335,7 @@ Approved-document questions:
 - `How does the RAG knowledge assistant work?`
 - `What is stored in the health_metrics table?`
 
-General-information fallback questions may be answered by Gemini when no approved document matches. The response is labelled as general information and does not have access to private patient records.
+General programming and knowledge questions go directly to Gemini without document retrieval. MedConnect-specific questions use approved documents; when no source supports a factual detail, the assistant says it cannot verify that detail rather than guessing. The Python service never has access to private patient records.
 
 ## Testing and verification
 
@@ -350,7 +350,7 @@ C:\xampp\php\php.exe -l doctor-dashboard.php
 RAG unit tests:
 
 ```powershell
-py -m unittest discover python-rag\tests
+python -m unittest discover -s python-rag\tests -v
 ```
 
 Manual checks:
@@ -361,7 +361,7 @@ Manual checks:
 4. Test latest readings, timestamps, comparisons, summaries, and missing values.
 5. Test appointments, prescriptions, doctors, departments, and department suggestions.
 6. Test an approved-document question and confirm the source is displayed.
-7. Test an unrelated question and confirm the general fallback is labelled.
+7. Test an unrelated question and confirm it receives a direct general Gemini answer.
 8. Stop Gemini/RAG and confirm the dashboard remains available with a sanitized error.
 9. Test the doctor workflow and confirm unassigned patient IDs return `403`.
 10. Test mobile layout, keyboard submission, and text-only response rendering.

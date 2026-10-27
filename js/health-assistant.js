@@ -34,15 +34,36 @@
     const loading = addMessage('Looking that up…', 'model loading');
     const patientId = document.getElementById('healthAssistantPatient')?.value || '';
     try {
-      const response = await fetch(form.dataset.chatEndpoint || 'gemini-chat.php', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': form.dataset.csrf || '' },
-        body: JSON.stringify({ question, patient_id: patientId, role: form.dataset.role || '' })
-      });
-      const data = await response.json();
+      let data;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          const response = await fetch(form.dataset.chatEndpoint || 'gemini-chat.php', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': form.dataset.csrf || '' },
+            body: JSON.stringify({
+              question,
+              patient_id: patientId,
+              role: form.dataset.role || '',
+              session_id: form.dataset.sessionId || ''
+            })
+          });
+          data = await response.json();
+          if (!response.ok) {
+            const error = new Error(data.error || 'Unable to reach the assistant.');
+            error.retryable = response.status === 429 || response.status >= 500;
+            throw error;
+          }
+          break;
+        } catch (error) {
+          if (attempt === 0 && (error instanceof TypeError || error.retryable)) {
+            loading.textContent = 'Connection interrupted. Retrying once…';
+            continue;
+          }
+          throw error;
+        }
+      }
       loading.remove();
-      if (!response.ok) throw new Error(data.error || 'Unable to reach the assistant.');
-      let reply = data.reply || 'No answer was returned.';
-      if (Array.isArray(data.sources) && data.sources.length) {
+      let reply = data?.reply || 'No answer was returned.';
+      if (Array.isArray(data?.sources) && data.sources.length) {
         reply += '\n\nSources: ' + data.sources.map(s => `${s.document}${s.page ? `, p. ${s.page}` : ''}`).join('; ');
       }
       addMessage(reply, 'model');

@@ -69,6 +69,6 @@ header('Content-Disposition: attachment; filename="' . $filename . '"');
         <p><span class="label">Instructions:</span><br><?= nl2br(htmlspecialchars($prescription['instructions'] ?: 'N/A')) ?></p>
         <p><span class="label">Prescription notes:</span><br><?= nl2br(htmlspecialchars($prescription['prescription'])) ?></p>
     </div>
-<script src="js/design-switch.js"></script>
+<script src="js/design-switch.js?v=2"></script>
 </body>
 </html>

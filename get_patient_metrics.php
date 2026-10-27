@@ -55,14 +55,22 @@ try {
         'metrics' => $metrics
     ]);
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     if ($e instanceof PDOException) {
         error_log('MedConnect doctor metrics query failed: ' . $e->getMessage());
+        if (http_response_code() < 400) {
+            http_response_code(500);
+        }
+    } elseif (http_response_code() < 400) {
+        error_log('MedConnect doctor metrics request failed: ' . get_class($e));
         http_response_code(500);
-        $errorMessage = 'Health data is temporarily unavailable.';
-    } else {
-        $errorMessage = $e->getMessage();
     }
+
+    $errorMessage = match (http_response_code()) {
+        422 => 'A valid patient ID is required.',
+        403 => 'Patient not found or access denied.',
+        default => 'Health data is temporarily unavailable.',
+    };
     echo json_encode([
         'success' => false,
         'error' => $errorMessage

@@ -1104,6 +1104,6 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
     </section>
     </section>
   </main>
-  <script src="js/design-switch.js"></script>
+  <script src="js/design-switch.js?v=2"></script>
 </body>
 </html>

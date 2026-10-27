@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/session.php';
+require_once __DIR__ . '/includes/assistant_session.php';
 if (!isset($_SESSION['doctor_id'])) {
     header("Location: doctor-login.html");
     exit();
@@ -103,6 +104,43 @@ try {
             $insertStmt->bindParam(':dosage', $dosage);
             $insertStmt->bindParam(':instructions', $instructions);
             $insertStmt->execute();
+          } elseif (isset($_POST['add_suggestion'])) {
+            $patientId = filter_input(INPUT_POST, 'patient_id', FILTER_VALIDATE_INT);
+            $appointmentId = filter_input(INPUT_POST, 'appointment_id', FILTER_VALIDATE_INT);
+            $suggestion = trim((string) ($_POST['suggestion'] ?? ''));
+
+            if (!$patientId || !$appointmentId || $suggestion === '' || strlen($suggestion) > 5000) {
+              header('Location: doctor-dashboard.php?error=invalid_suggestion#appointments-tab-pane');
+              exit();
+            }
+
+            $authorizationStmt = $conn->prepare("SELECT 1
+              FROM appointments a
+              INNER JOIN doctors d ON d.id = a.doctor_id
+              WHERE a.id = :appointment_id
+                AND a.patient_id = :patient_id
+                AND a.doctor_id = :doctor_id
+                AND d.verification_status = 'approved'
+              LIMIT 1");
+            $authorizationStmt->execute([
+              ':appointment_id' => $appointmentId,
+              ':patient_id' => $patientId,
+              ':doctor_id' => (int) $_SESSION['doctor_id'],
+            ]);
+            if (!$authorizationStmt->fetchColumn()) {
+              header('Location: doctor-dashboard.php?error=unauthorized_patient#appointments-tab-pane');
+              exit();
+            }
+
+            $suggestionStmt = $conn->prepare('INSERT INTO patient_suggestions (doctor_id, patient_id, appointment_id, suggestion) VALUES (:doctor_id, :patient_id, :appointment_id, :suggestion)');
+            $suggestionStmt->execute([
+              ':doctor_id' => (int) $_SESSION['doctor_id'],
+              ':patient_id' => $patientId,
+              ':appointment_id' => $appointmentId,
+              ':suggestion' => $suggestion,
+            ]);
+            header('Location: doctor-dashboard.php?suggestion_saved=1#appointments-tab-pane');
+            exit();
           } elseif (isset($_POST['delete_prescription'])) {
             $prescriptionId = filter_input(INPUT_POST, 'prescription_id', FILTER_VALIDATE_INT);
 
@@ -357,7 +395,7 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
     .chart-container { height: 300px; }
   </style>
   <link rel="stylesheet" href="css/business.css">
-  <link rel="stylesheet" href="css/dashboard-modern.css?v=20261025-11">
+  <link rel="stylesheet" href="css/dashboard-modern.css?v=20261025-12">
   <link rel="stylesheet" href="css/theme.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -408,13 +446,15 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
         </div>
         <span class="monitoring-pill <?= $mlServiceAvailable ? 'is-available' : 'is-unavailable' ?>"><span></span>Prediction service <?= $mlServiceAvailable ? 'online' : 'unavailable' ?></span>
       </div>
-      <?php if (isset($_GET['profile_updated']) || isset($_GET['error'])): ?>
+      <?php if (isset($_GET['profile_updated']) || isset($_GET['suggestion_saved']) || isset($_GET['error'])): ?>
         <div class="alert <?= isset($_GET['error']) ? 'alert-warning' : 'alert-success' ?>" role="status">
           <?php if (isset($_GET['profile_updated'])): ?>Profile updated successfully.
+          <?php elseif (isset($_GET['suggestion_saved'])): ?>Patient suggestion saved to the patient's care record.
           <?php elseif ($_GET['error'] === 'invalid_profile'): ?>Check the profile fields and try again.
           <?php elseif ($_GET['error'] === 'duplicate_email'): ?>That email is already used by another account.
           <?php elseif ($_GET['error'] === 'unauthorized_patient'): ?>That patient or appointment is not assigned to your account.
           <?php elseif ($_GET['error'] === 'invalid_prescription'): ?>Complete the prescription fields within the allowed length.
+          <?php elseif ($_GET['error'] === 'invalid_suggestion'): ?>Enter a suggestion with no more than 5,000 characters.
           <?php endif; ?>
         </div>
       <?php endif; ?>
@@ -749,6 +789,13 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
                               data-appointment-id="<?= $appt['id'] ?>">
                         <i class="bi bi-prescription"></i> Add Rx
                       </button>
+                      <button type="button" class="btn btn-sm btn-outline-success mt-1" data-bs-toggle="modal"
+                              data-bs-target="#addSuggestionModal"
+                              data-patient-id="<?= (int) $appt['patient_id'] ?>"
+                              data-patient-name="<?= htmlspecialchars($appt['patient_name'], ENT_QUOTES, 'UTF-8') ?>"
+                              data-appointment-id="<?= (int) $appt['id'] ?>">
+                        <i class="bi bi-chat-square-text"></i> Add suggestion
+                      </button>
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -907,6 +954,31 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
     </div>
   </div>
 
+  <!-- Add Patient Suggestion Modal -->
+  <div class="modal fade" id="addSuggestionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form method="POST" class="modal-content">
+        <input type="hidden" name="doctor_csrf" value="<?= htmlspecialchars($_SESSION['doctor_csrf'], ENT_QUOTES, 'UTF-8') ?>">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Suggestion for <span id="suggestionPatientName"></span></h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="add_suggestion" value="1">
+          <input type="hidden" id="suggestionPatientId" name="patient_id" value="">
+          <input type="hidden" id="suggestionAppointmentId" name="appointment_id" value="">
+          <label class="form-label" for="patientSuggestionText">Care suggestion</label>
+          <textarea id="patientSuggestionText" name="suggestion" class="form-control" rows="5" maxlength="5000" required placeholder="Write practical follow-up guidance for this patient."></textarea>
+          <p class="form-text">This will be visible in the patient's Doctor Suggestions section.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Save suggestion</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Health Trends Modal -->
   <div class="modal fade" id="healthTrendsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
@@ -1003,6 +1075,14 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
       document.getElementById('patientId').value = button.getAttribute('data-patient-id');
       document.getElementById('patientName').textContent = button.getAttribute('data-patient-name');
       document.getElementById('appointmentId').value = button.getAttribute('data-appointment-id');
+    });
+
+    document.getElementById('addSuggestionModal').addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget;
+      document.getElementById('suggestionPatientId').value = button.getAttribute('data-patient-id');
+      document.getElementById('suggestionPatientName').textContent = button.getAttribute('data-patient-name');
+      document.getElementById('suggestionAppointmentId').value = button.getAttribute('data-appointment-id');
+      document.getElementById('patientSuggestionText').value = '';
     });
 
     // Add hover effects to health metric cards
@@ -1217,12 +1297,12 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
       </select>
     </label>
     <div class="health-assistant-messages" id="healthAssistantMessages" aria-live="polite"><div class="health-assistant-message model">Ask about approved reference documents, or choose an assigned patient to ask about stored readings. Informational support only; not a diagnosis.</div></div>
-    <form id="healthAssistantForm" class="health-assistant-form" data-role="doctor" data-chat-endpoint="gemini-chat.php" data-csrf="<?= htmlspecialchars($_SESSION['assistant_csrf'] ??= bin2hex(random_bytes(32)), ENT_QUOTES, 'UTF-8') ?>"><label class="visually-hidden" for="healthAssistantInput">Ask the health assistant</label><input id="healthAssistantInput" name="question" maxlength="2000" autocomplete="off" placeholder="Ask a health question..." required><button type="submit" aria-label="Send question">Send</button></form>
+    <form id="healthAssistantForm" class="health-assistant-form" data-role="doctor" data-session-id="<?= htmlspecialchars(medconnect_assistant_session_id('doctor'), ENT_QUOTES, 'UTF-8') ?>" data-chat-endpoint="gemini-chat.php" data-csrf="<?= htmlspecialchars($_SESSION['assistant_csrf'] ??= bin2hex(random_bytes(32)), ENT_QUOTES, 'UTF-8') ?>"><label class="visually-hidden" for="healthAssistantInput">Ask the health assistant</label><input id="healthAssistantInput" name="question" maxlength="2000" autocomplete="off" placeholder="Ask a health question..." required><button type="submit" aria-label="Send question">Send</button></form>
     <p class="health-assistant-note">For emergencies, use established clinical and emergency procedures.</p>
   </aside>
   <button type="button" class="health-assistant-launcher" id="healthAssistantLauncher" aria-label="Open health assistant">✚ <span>Health assistant</span></button>
   <link rel="stylesheet" href="css/health-assistant.css">
-  <script src="js/health-assistant.js"></script>
-  <script src="js/design-switch.js"></script>
+  <script src="js/health-assistant.js?v=2"></script>
+  <script src="js/design-switch.js?v=2"></script>
 </body>
 </html>

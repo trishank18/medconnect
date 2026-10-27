@@ -1,11 +1,11 @@
-const CACHE_NAME = 'medconnect-shell-v3';
+const CACHE_NAME = 'medconnect-shell-v5';
 const APP_SHELL = [
   './',
   './index.html',
   './app.html',
   './choose-role.html',
   './css/style.css',
-  './js/design-switch.js',
+  './js/design-switch.js?v=2',
   './manifest.webmanifest'
 ];
 

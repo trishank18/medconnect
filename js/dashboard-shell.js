@@ -21,7 +21,8 @@
         ] },
         { title: 'Operations', links: [
           ['bi-calendar3', 'Appointments', '#appointments-tab-pane'],
-          ['bi-capsule', 'Prescriptions', '#appointments-tab-pane']
+          ['bi-capsule', 'Prescriptions', '#appointments-tab-pane'],
+          ['bi-chat-square-text', 'Patient Suggestions', '#appointments-tab-pane']
         ] },
         { title: 'Account', links: [
           ['bi-person-circle', 'Profile', '#viewProfileModal'],
@@ -38,6 +39,7 @@
             ['bi-calendar3', 'Appointments', '#appointments'],
             ['bi-person-check', 'My Doctor', '#patient-next-appointment'],
             ['bi-prescription2', 'Prescriptions', '#prescriptions'],
+            ['bi-chat-square-heart', 'Doctor Suggestions', '#doctor-suggestions'],
             ['bi-robot', 'AI Predictions', 'patient-prediction.php']
           ] },
           { title: 'Account', links: [
@@ -145,7 +147,7 @@
 
   if (isPatient) {
     document.addEventListener('click', function (event) {
-      var link = event.target.closest('a[href="#book-appointment"], a[href="#appointments"], a[href="#prescriptions"]');
+      var link = event.target.closest('a[href="#book-appointment"], a[href="#appointments"], a[href="#prescriptions"], a[href="#doctor-suggestions"]');
       if (!link) return;
       document.body.classList.add('show-legacy-sections');
     });

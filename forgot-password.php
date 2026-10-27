@@ -198,6 +198,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </div>
 
-  <script src="js/design-switch.js"></script>
+  <script src="js/design-switch.js?v=2"></script>
 </body>
 </html>

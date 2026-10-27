@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/session.php';
+require_once __DIR__ . '/includes/assistant_session.php';
 if (!isset($_SESSION['patient_id'])) {
     header("Location: patient-login.html");
     exit();
@@ -176,6 +177,18 @@ try {
     $presc_stmt->bindParam(':patient_id', $_SESSION['patient_id']);
     $presc_stmt->execute();
     $prescriptions = $presc_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Suggestions are visible only to the patient who owns the authenticated session.
+    $suggestionStmt = $conn->prepare("SELECT ps.suggestion, ps.created_at, d.fullname AS doctor_name, d.department,
+            a.appointment_date, a.appointment_time
+        FROM patient_suggestions ps
+        INNER JOIN doctors d ON d.id = ps.doctor_id
+        INNER JOIN appointments a ON a.id = ps.appointment_id
+        WHERE ps.patient_id = :patient_id
+        ORDER BY ps.created_at DESC, ps.id DESC
+        LIMIT 50");
+    $suggestionStmt->execute([':patient_id' => (int) $_SESSION['patient_id']]);
+    $doctorSuggestions = $suggestionStmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
     error_log('MedConnect patient dashboard query failed: ' . $e->getMessage());
@@ -543,6 +556,26 @@ if (!$patientDoctor && $upcomingAppointment && ($upcomingAppointment['doctor_ver
         </table>
       </div>
     </section>
+
+    <section id="doctor-suggestions" class="modern-panel patient-legacy-panel" aria-labelledby="doctor-suggestions-title">
+      <div class="modern-panel-heading"><div><h2 id="doctor-suggestions-title">Doctor Suggestions</h2><p><?= count($doctorSuggestions) ?> care suggestions from your appointments</p></div><i class="bi bi-chat-square-heart panel-accent-icon"></i></div>
+      <?php if ($doctorSuggestions): ?>
+        <div class="patient-suggestions-list">
+          <?php foreach ($doctorSuggestions as $doctorSuggestion): ?>
+            <article class="patient-suggestion-card">
+              <div class="patient-suggestion-meta">
+                <strong><?= htmlspecialchars($doctorSuggestion['doctor_name'], ENT_QUOTES, 'UTF-8') ?><?= !empty($doctorSuggestion['department']) ? ' · ' . htmlspecialchars($doctorSuggestion['department'], ENT_QUOTES, 'UTF-8') : '' ?></strong>
+                <time datetime="<?= htmlspecialchars(date('c', strtotime($doctorSuggestion['created_at'])), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(date('M j, Y · g:i A', strtotime($doctorSuggestion['created_at'])), ENT_QUOTES, 'UTF-8') ?></time>
+              </div>
+              <p><?= nl2br(htmlspecialchars($doctorSuggestion['suggestion'], ENT_QUOTES, 'UTF-8')) ?></p>
+              <small>Related appointment: <?= htmlspecialchars(date('M j, Y', strtotime($doctorSuggestion['appointment_date'])), ENT_QUOTES, 'UTF-8') ?> at <?= htmlspecialchars(date('g:i A', strtotime($doctorSuggestion['appointment_time'])), ENT_QUOTES, 'UTF-8') ?></small>
+            </article>
+          <?php endforeach; ?>
+        </div>
+      <?php else: ?>
+        <p class="modern-empty">Your doctor has not shared any suggestions yet.</p>
+      <?php endif; ?>
+    </section>
 </div>
 
 <aside class="health-assistant" aria-label="MedConnect Health Assistant">
@@ -561,7 +594,7 @@ if (!$patientDoctor && $upcomingAppointment && ($upcomingAppointment['doctor_ver
     <div class="health-assistant-messages" id="healthAssistantMessages" aria-live="polite">
         <div class="health-assistant-message model">Hi <?= htmlspecialchars(explode(' ', $patient['fullname'])[0]) ?>. Ask me about your readings or general health information. I cannot diagnose or replace a clinician.</div>
     </div>
-    <form id="healthAssistantForm" class="health-assistant-form" data-role="patient" data-chat-endpoint="gemini-chat.php" data-csrf="<?= htmlspecialchars($_SESSION['assistant_csrf'] ??= bin2hex(random_bytes(32)), ENT_QUOTES, 'UTF-8') ?>">
+    <form id="healthAssistantForm" class="health-assistant-form" data-role="patient" data-session-id="<?= htmlspecialchars(medconnect_assistant_session_id('patient'), ENT_QUOTES, 'UTF-8') ?>" data-chat-endpoint="gemini-chat.php" data-csrf="<?= htmlspecialchars($_SESSION['assistant_csrf'] ??= bin2hex(random_bytes(32)), ENT_QUOTES, 'UTF-8') ?>">
         <label class="visually-hidden" for="healthAssistantInput">Ask the health assistant</label>
         <input id="healthAssistantInput" name="question" maxlength="2000" autocomplete="off" placeholder="Ask a health question..." required>
         <button type="submit" aria-label="Send question"><i class="bi bi-arrow-up"></i></button>
@@ -806,8 +839,8 @@ new Chart(document.getElementById('mlComparisonChart'), {
 });
 </script>
 <?php endif; ?>
-    <script src="js/design-switch.js"></script>
-    <script src="js/health-assistant.js"></script>
+    <script src="js/design-switch.js?v=2"></script>
+    <script src="js/health-assistant.js?v=2"></script>
     <script>
       const patientVitalsCanvas = document.getElementById('patientVitalsChart');
       if (patientVitalsCanvas) {

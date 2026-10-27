@@ -119,9 +119,8 @@ body.doctor-modern-dashboard .doctor-application-note div span { color: var(--te
 body.doctor-modern-dashboard .doctor-application-badge { border: 1px solid currentColor; border-radius: 999px; font-size: .62rem; padding: .25rem .55rem; }
 body.modern-dashboard .metric-unit { color: var(--text-secondary); font-size: .72rem; font-weight: 500; letter-spacing: 0; }
 body.modern-dashboard .design-switch { display: none; }
-body.modern-dashboard .dark-mode-switch { align-items: center; background: var(--card); border: 1px solid var(--border); border-radius: 999px; color: var(--text-primary); display: inline-flex; font: 500 .7rem Inter, sans-serif; gap: .4rem; padding: .45rem .7rem; position: fixed; right: 24px; top: 20px; z-index: 1041; }
+body.modern-dashboard .dark-mode-switch { align-items: center; background: var(--card); border: 1px solid var(--border); border-radius: 999px; color: var(--text-primary); display: inline-flex; font: 500 .7rem Inter, sans-serif; gap: .4rem; padding: .45rem .7rem; position: fixed; right: 20px; top: 20px; z-index: 1081; }
 body.modern-dashboard .dark-mode-switch:hover { border-color: var(--green); color: var(--green); }
-body.modern-dashboard .modern-overview-header .dark-mode-switch, body.admin-page.modern-dashboard .topbar nav .dark-mode-switch { position: static; right: auto; top: auto; z-index: auto; }
 html:not(.dark-theme) body.modern-dashboard { --bg: #f2f7f8; --sidebar: #ffffff; --card: #ffffff; --card-elevated: #f5f8f9; --border: #d6e1e3; --text-primary: #18252a; --text-secondary: #52646b; --text-muted: #718087; background: var(--bg) !important; color: var(--text-primary); }
 html.dark-theme body.modern-dashboard { background: var(--bg) !important; color: var(--text-primary); }
 html:not(.dark-theme) body.modern-dashboard .modern-kpi, html:not(.dark-theme) body.modern-dashboard .modern-panel { box-shadow: 0 12px 30px rgba(15,35,45,.07); }
@@ -193,6 +192,12 @@ body.doctor-modern-dashboard .doctor-vitals-history { background: transparent; b
 .patient-modern-dashboard .modern-inline-link { display: inline-flex; gap: .35rem; margin-top: 1rem; }
 .patient-modern-dashboard .modern-action-link { align-items: center; border: 1px solid rgba(67,214,160,.3); border-radius: 999px; display: inline-flex; gap: .35rem; margin-top: .6rem; padding: .4rem .7rem; width: fit-content; }
 .patient-modern-dashboard .patient-prescription-panel { margin-top: 1rem; }
+.patient-modern-dashboard .patient-suggestions-list { display: grid; gap: .7rem; margin-top: .9rem; }
+.patient-modern-dashboard .patient-suggestion-card { background: var(--card-elevated); border: 1px solid var(--border); border-radius: 12px; padding: .85rem 1rem; }
+.patient-modern-dashboard .patient-suggestion-meta { align-items: baseline; display: flex; flex-wrap: wrap; gap: .35rem .8rem; justify-content: space-between; }
+.patient-modern-dashboard .patient-suggestion-meta strong { color: var(--text-primary); font-size: .75rem; }
+.patient-modern-dashboard .patient-suggestion-meta time,.patient-modern-dashboard .patient-suggestion-card small { color: var(--text-muted); font-size: .64rem; }
+.patient-modern-dashboard .patient-suggestion-card p { color: var(--text-secondary); font-size: .72rem; line-height: 1.55; margin: .55rem 0 .35rem; overflow-wrap: anywhere; white-space: normal; }
 .patient-modern-dashboard .prescription-strip { display: grid; gap: .6rem; grid-template-columns: repeat(3,minmax(0,1fr)); margin-top: 1rem; }
 .patient-modern-dashboard .prescription-item { align-items: center; background: var(--card-elevated); border: 1px solid rgba(41,43,46,.8); border-radius: 11px; display: flex; gap: .65rem; min-width: 0; padding: .7rem; }
 .patient-modern-dashboard .prescription-item > i { color: var(--purple); font-size: .9rem; }

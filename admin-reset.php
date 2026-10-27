@@ -72,6 +72,6 @@ try {
       <p class="switch-link"><a href="admin-login.html">Back to admin login</a></p>
     </div>
   </div>
-  <script src="js/design-switch.js"></script>
+  <script src="js/design-switch.js?v=2"></script>
 </body>
 </html>

@@ -227,6 +227,6 @@ fetch('predict_health.php', { signal: predictionController.signal, headers: { Ac
     })
     .finally(() => window.clearTimeout(predictionTimeout));
 </script>
-    <script src="js/design-switch.js"></script>
+    <script src="js/design-switch.js?v=2"></script>
 </body>
 </html>

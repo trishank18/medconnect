@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/session.php';
+require_once __DIR__ . '/includes/assistant_session.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
@@ -35,17 +36,33 @@ if (!is_array($body)) {
     exit();
 }
 $role = $body['role'] ?? '';
+$patientSessionActive = !empty($_SESSION['patient_id']);
+$doctorSessionActive = !empty($_SESSION['doctor_id']);
 if (!in_array($role, ['patient', 'doctor'], true)
-    || ($role === 'patient' && empty($_SESSION['patient_id']))
-    || ($role === 'doctor' && empty($_SESSION['doctor_id']))) {
+    || ($patientSessionActive && $doctorSessionActive)
+    || ($role === 'patient' && (!$patientSessionActive || $doctorSessionActive))
+    || ($role === 'doctor' && (!$doctorSessionActive || $patientSessionActive))) {
     http_response_code(401);
     echo json_encode(['error' => 'Please sign in to the correct workspace to use the health assistant.']);
+    exit();
+}
+$assistantSessionId = medconnect_assistant_session_id($role);
+$clientSessionId = (string)($body['session_id'] ?? '');
+if ($clientSessionId !== '' && !hash_equals($assistantSessionId, $clientSessionId)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Your assistant session has changed. Refresh the dashboard and try again.']);
     exit();
 }
 $question = trim((string)($body['question'] ?? ''));
 if ($question === '' || strlen($question) > 2000) {
     http_response_code(422);
     echo json_encode(['error' => 'Enter a question of up to 2,000 characters.']);
+    exit();
+}
+
+if ($role === 'patient' && preg_match('/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?[\'’]s\b.{0,60}\b(readings?|vitals?|health\s+records?|medical\s+records?|prescriptions?|medications?)\b/i', $question)) {
+    http_response_code(403);
+    echo json_encode(['error' => 'The patient workspace can only show records for the signed-in patient.']);
     exit();
 }
 
@@ -68,6 +85,8 @@ if (preg_match('/^(is this which step|which step is this|what step is this)[?.!,
 require_once __DIR__ . '/includes/sms_service.php';
 medconnect_load_env_file();
 require_once __DIR__ . '/includes/db_connection.php';
+require_once __DIR__ . '/includes/assistant_access.php';
+require_once __DIR__ . '/includes/assistant_response.php';
 
 if ($role === 'doctor') {
     $approvedDoctor = $conn->prepare("SELECT 1 FROM doctors WHERE id = :doctor_id AND verification_status = 'approved' LIMIT 1");
@@ -232,8 +251,8 @@ if (preg_match('/\b(doctor|doctors|available|availability|department|departments
 }
 
 // Structured measurement questions are answered from the authorized record, not Gemini.
-$measurementTerms = '(heart\s*rate|heart-rate|spo2|oxygen|temperature|blood pressure|blood-pressure|readings?|measurements?|vitals?)';
-$measurementIntent = preg_match('/\b(latest|last|recent|recorded|reading|measurement|today|yesterday|week|seven|timestamp|summari[sz]e|average|mean|count|how many|show|list|compare|change|missing|complete|gap|history|available|included|fields?|unit|values?)\b/i', $question);
+$measurementTerms = '(heart\s*rate|heart-rate|spo2|oxygen|temperature|blood pressure|blood-pressure|readings?|measurements?|vitals?|pulse|bpm|\bhr\b|\bbp\b)';
+$measurementIntent = preg_match('/\b(latest|last|recent|recorded|reading|measurement|today|yesterday|week|seven|timestamp|summari[sz]e|average|mean|count|how many|show|list|compare|change|missing|complete|gap|history|available|included|fields?|unit|values?|pulse|bpm|hr|bp)\b/i', $question);
 if (preg_match("/{$measurementTerms}/i", $question) && $measurementIntent) {
     $targetId = null;
     if ($role === 'patient') {
@@ -245,9 +264,7 @@ if (preg_match("/{$measurementTerms}/i", $question) && $measurementIntent) {
             echo json_encode(['error' => 'Choose an assigned patient before asking about readings.']);
             exit();
         }
-        $access = $conn->prepare("SELECT 1 FROM patients p JOIN doctors d ON d.id = :doctor_id WHERE p.id = :patient_id AND d.verification_status = 'approved' AND (p.doctor_id = d.id OR EXISTS (SELECT 1 FROM appointments a WHERE a.patient_id = p.id AND a.doctor_id = d.id)) LIMIT 1");
-        $access->execute([':doctor_id' => (int)$_SESSION['doctor_id'], ':patient_id' => $targetId]);
-        if (!$access->fetchColumn()) {
+        if (!medconnect_doctor_can_access_patient($conn, (int)$_SESSION['doctor_id'], $targetId)) {
             http_response_code(403);
             echo json_encode(['error' => 'You are not authorized to view that patient\'s readings.']);
             exit();
@@ -278,7 +295,12 @@ if (preg_match("/{$measurementTerms}/i", $question) && $measurementIntent) {
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     if (!$rows) {
         $periodText = $periodLabel === 'today' ? 'today' : "in {$periodLabel}";
-        echo json_encode(['reply' => "No readings were recorded for this patient {$periodText}.", 'sources' => []]);
+        $reply = "No readings were recorded for this patient {$periodText}.";
+        if (preg_match('/\\b(what does|meaning of|explain)\\b.{0,40}\\b(spo2|oxygen)\\b/i', $question)) {
+            $reply .= " SpO2 is an estimate of the percentage of oxygen-saturated hemoglobin in the blood; this explanation is general information, not a diagnosis.";
+        }
+        $reply = medconnect_append_spo2_explanation($question, $reply);
+        echo json_encode(['reply' => $reply, 'sources' => []]);
         exit();
     }
 
@@ -289,6 +311,15 @@ if (preg_match("/{$measurementTerms}/i", $question) && $measurementIntent) {
         'blood_pressure' => ['blood\s*-?\s*pressure', 'blood pressure', 'mmHg'],
     ];
     $latest = $rows[0];
+    if (preg_match('/\\b(what does|meaning of|explain)\\b.{0,40}\\b(spo2|oxygen)\\b/i', $question)) {
+        $reply = 'Your latest stored reading (' . $latest['recorded_at'] . '): heart rate ' . ($latest['heart_rate'] ?? 'not recorded')
+            . ' BPM, SpO2 ' . ($latest['spo2'] ?? 'not recorded') . '%, temperature ' . ($latest['temperature'] ?? 'not recorded')
+            . ' °C, and blood pressure ' . ($latest['blood_pressure_sys'] ?? 'not recorded') . '/'
+            . ($latest['blood_pressure_dia'] ?? 'not recorded') . ' mmHg. SpO2 is an estimate of the percentage of oxygen-saturated hemoglobin in the blood. These stored values and this general explanation are not a diagnosis.';
+        $reply = medconnect_append_spo2_explanation($question, $reply);
+        echo json_encode(['reply' => $reply, 'sources' => []], JSON_UNESCAPED_UNICODE);
+        exit();
+    }
     $fieldKey = null;
     foreach ($fields as $key => [$pattern]) {
         if (preg_match("/{$pattern}/i", $question)) {
@@ -364,7 +395,7 @@ if (preg_match("/{$measurementTerms}/i", $question) && $measurementIntent) {
 // Patient-record questions are answered from scoped SQL only. No readings or identifiers go to Gemini.
 $isHistoricalQuestion = preg_match('/\b(past|older|previous|history|before\s*seven(?:days?)?|before\s*7(?:days?)?)\b/i', $question);
 $isDataQuestion = preg_match('/\b(latest|recent|readings?|measurements?|vitals?|trend|compare|show me|what are my|what is my)\b/i', $question)
-    || preg_match('/\bmy\b.{0,60}\b(heart\s*rate|spo2|oxygen|temperature|blood pressure|readings?|vitals?|last)\b/i', $question)
+    || preg_match('/\bmy\b.{0,60}\b(heart\s*rate|spo2|oxygen|temperature|blood pressure|readings?|vitals?|last|hr|bp|pulse|bpm)\b/i', $question)
     || preg_match('/\bsummari[sz]e\b.{0,60}\b(patient|my|readings?|vitals?|last seven|last 7)\b/i', $question)
     || $isHistoricalQuestion;
 if ($isDataQuestion) {
@@ -378,9 +409,7 @@ if ($isDataQuestion) {
             echo json_encode(['error' => 'Choose an assigned patient before asking about readings.']);
             exit();
         }
-        $access = $conn->prepare("SELECT 1 FROM patients p JOIN doctors d ON d.id = :doctor_id WHERE p.id = :patient_id AND d.verification_status = 'approved' AND (p.doctor_id = d.id OR EXISTS (SELECT 1 FROM appointments a WHERE a.patient_id = p.id AND a.doctor_id = d.id)) LIMIT 1");
-        $access->execute([':doctor_id' => (int)$_SESSION['doctor_id'], ':patient_id' => $targetId]);
-        if (!$access->fetchColumn()) {
+        if (!medconnect_doctor_can_access_patient($conn, (int)$_SESSION['doctor_id'], $targetId)) {
             http_response_code(403);
             echo json_encode(['error' => 'You are not authorized to view that patient\'s readings.']);
             exit();
@@ -394,7 +423,12 @@ if ($isDataQuestion) {
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     if (!$rows) {
         $period = $isHistoricalQuestion ? 'before the last seven days' : 'in the last seven days';
-        echo json_encode(['reply' => "No readings were recorded for this patient {$period}.", 'sources' => []]);
+        $reply = "No readings were recorded for this patient {$period}.";
+        if (preg_match('/\b(what does|meaning of|explain)\b.{0,50}\b(spo2|oxygen)\b/i', $question)) {
+            $reply .= ' SpO2 is an estimate of the percentage of oxygen-saturated hemoglobin in the blood; this explanation is general information, not a diagnosis.';
+        }
+        $reply = medconnect_append_spo2_explanation($question, $reply);
+        echo json_encode(['reply' => $reply, 'sources' => []], JSON_UNESCAPED_UNICODE);
         exit();
     }
     $latest = $rows[0];
@@ -428,7 +462,11 @@ if ($isDataQuestion) {
             $reply .= $row['recorded_at'] . ': HR ' . ($row['heart_rate'] ?? '—') . ' BPM, SpO2 ' . ($row['spo2'] ?? '—') . '%, temp ' . ($row['temperature'] ?? '—') . " °C\n";
         }
     }
-    echo json_encode(['reply' => $reply, 'sources' => []]);
+    if (preg_match('/\b(what does|meaning of|explain)\b.{0,50}\b(spo2|oxygen)\b/i', $question)) {
+        $reply .= "\nSpO2 is an estimate of the percentage of oxygen-saturated hemoglobin in the blood. This general explanation is not a diagnosis.";
+    }
+    $reply = medconnect_append_spo2_explanation($question, $reply);
+    echo json_encode(['reply' => $reply, 'sources' => []], JSON_UNESCAPED_UNICODE);
     exit();
 }
 
@@ -439,15 +477,20 @@ if (!$serviceToken || !function_exists('curl_init')) {
     echo json_encode(['error' => 'The approved-document assistant is not configured.']);
     exit();
 }
-$payload = json_encode(['question' => $question, 'request_id' => bin2hex(random_bytes(16))]);
+$payload = json_encode([
+    'question' => $question,
+    'request_id' => bin2hex(random_bytes(16)),
+    'conversation_id' => $assistantSessionId,
+]);
 $curl = curl_init($ragUrl);
+@set_time_limit(75);
 curl_setopt_array($curl, [
     CURLOPT_POST => true,
     CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'X-MedConnect-Token: ' . $serviceToken],
     CURLOPT_POSTFIELDS => $payload,
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_CONNECTTIMEOUT => 3,
-    CURLOPT_TIMEOUT => 35,
+    CURLOPT_TIMEOUT => 70,
 ]);
 $response = curl_exec($curl);
 $status = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);

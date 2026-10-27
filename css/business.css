@@ -427,7 +427,7 @@ body.dark-theme .patient-trends-modal { background: var(--biz-canvas); }
   gap: 7px;
   padding: 8px 12px;
   position: fixed;
-  right: 20px;
+  right: 156px;
   top: 18px;
   z-index: 1080;
 }
