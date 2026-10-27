@@ -154,3 +154,18 @@ CRUD operations, sensor posting, model inference against a real patient's rows,
 or device hardware tests. They require external credentials, authenticated
 accounts, real/personal data, a configured disposable database, or physical
 hardware. No such data or external service was used by these checks.
+
+### Re-verification — 2026-10-27
+
+After the administrator UI update, the project still has the route-preserving
+organization described above, with administrator entry points at the web root
+and role/service modules in their existing directories. The checkpoint bundle remains
+available at the recorded path. A recursive connection scan still finds only
+`includes/db_connection.php` constructing PDO; `.env` files remain ignored and
+their contents were not read. PHP lint passed for 38 files, JavaScript syntax
+passed for 7 files, source-only Python compilation passed for 22 files, ML tests
+passed 5/5, and RAG tests passed 32 with 2 optional skips and one upstream
+deprecation warning. Both Python environments passed `pip check`. HTTP checks
+returned 200 for the admin stylesheet, 302 for the protected admin dashboard,
+and 403 for the database setup SQL. No DB writes/schema changes occurred.
+Authenticated browser rendering and CRUD/access flows remain not run.

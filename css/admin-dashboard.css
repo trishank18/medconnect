@@ -1,0 +1,122 @@
+/* Admin workspace refinements. Keeps the shared MedConnect dashboard tokens. */
+body.admin-page.modern-dashboard {
+  min-height: 100vh;
+  overflow-x: clip;
+}
+
+body.admin-page.modern-dashboard .admin-shell {
+  width: auto;
+  min-width: 0;
+}
+
+body.admin-page.modern-dashboard .modern-overview-header {
+  border-bottom: 1px solid var(--border);
+  gap: 1rem;
+  padding: 0 0 1rem;
+}
+
+body.admin-page.modern-dashboard .modern-overview-header > div { min-width: 0; }
+body.admin-page.modern-dashboard .modern-overview-header h1 { line-height: 1.2; }
+
+body.admin-page.modern-dashboard .admin-alerts:empty { display: none; }
+body.admin-page.modern-dashboard .admin-alerts { margin: 0 0 .9rem; }
+body.admin-page.modern-dashboard .admin-alerts .success-message,
+body.admin-page.modern-dashboard .admin-alerts .error-message {
+  align-items: flex-start;
+  border-radius: 11px;
+  font-size: .76rem;
+  line-height: 1.5;
+  padding: .7rem .85rem;
+}
+
+body.admin-page.modern-dashboard .admin-metric {
+  min-width: 0;
+  position: relative;
+  transition: border-color .18s ease, transform .18s ease;
+}
+body.admin-page.modern-dashboard .admin-metric:hover {
+  border-color: color-mix(in srgb, var(--green) 40%, var(--border));
+  transform: translateY(-2px);
+}
+body.admin-page.modern-dashboard .admin-metric strong { font-variant-numeric: tabular-nums; }
+body.admin-page.modern-dashboard .admin-metric small { line-height: 1.45; }
+
+body.admin-page.modern-dashboard .admin-ml-panel { min-width: 0; }
+body.admin-page.modern-dashboard .admin-action-card { min-width: 0; }
+body.admin-page.modern-dashboard .admin-action-card h2,
+body.admin-page.modern-dashboard .admin-section h2 { letter-spacing: -.02em; }
+body.admin-page.modern-dashboard .admin-section-heading { min-width: 0; }
+body.admin-page.modern-dashboard .admin-section-heading > div { min-width: 0; }
+body.admin-page.modern-dashboard .admin-action-card p,
+body.admin-page.modern-dashboard .doctor-review-info p { overflow-wrap: anywhere; }
+
+body.admin-page.modern-dashboard .admin-schedule-form label,
+body.admin-page.modern-dashboard .admin-delete-form > label {
+  color: var(--text-secondary);
+  font-size: .7rem;
+  font-weight: 600;
+}
+body.admin-page.modern-dashboard .admin-schedule-form input,
+body.admin-page.modern-dashboard .admin-delete-controls select {
+  border-radius: 9px;
+  min-height: 42px;
+}
+body.admin-page.modern-dashboard .admin-schedule-form input:focus,
+body.admin-page.modern-dashboard .admin-delete-controls select:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(67, 214, 160, .13);
+  outline: 0;
+}
+
+body.admin-page.modern-dashboard .admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+body.admin-page.modern-dashboard .admin-tab {
+  align-items: center;
+  display: inline-flex;
+  gap: .45rem;
+  min-height: 36px;
+}
+body.admin-page.modern-dashboard .doctor-review-row { gap: 1rem; }
+body.admin-page.modern-dashboard .doctor-review-actions { flex-wrap: wrap; }
+body.admin-page.modern-dashboard .doctor-review-actions .btn { min-height: 36px; }
+body.admin-page.modern-dashboard .status-badge { white-space: nowrap; }
+
+body.admin-page.modern-dashboard :is(a, button, input, select):focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  body.admin-page.modern-dashboard .admin-shell { margin: 0 14px; padding-top: 72px; }
+  body.admin-page.modern-dashboard .admin-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  body.admin-page.modern-dashboard .admin-shell { margin: 0 12px; padding: 70px 0 28px; }
+  body.admin-page.modern-dashboard .modern-overview-header { align-items: flex-start; }
+  body.admin-page.modern-dashboard .monitoring-pill { font-size: .66rem; }
+  body.admin-page.modern-dashboard .admin-metrics { gap: .65rem; }
+  body.admin-page.modern-dashboard .admin-metric { min-height: 108px; padding: .75rem; }
+  body.admin-page.modern-dashboard .admin-metric strong { font-size: 1.35rem; }
+  body.admin-page.modern-dashboard .admin-actions-grid { grid-template-columns: minmax(0, 1fr); }
+  body.admin-page.modern-dashboard .admin-danger-card { grid-column: auto; }
+  body.admin-page.modern-dashboard .admin-section,
+  body.admin-page.modern-dashboard .admin-action-card,
+  body.admin-page.modern-dashboard .admin-ml-panel { padding: .85rem; }
+  body.admin-page.modern-dashboard .doctor-review-row { align-items: stretch; }
+  body.admin-page.modern-dashboard .doctor-review-actions { align-items: center; width: 100%; }
+  body.admin-page.modern-dashboard .doctor-review-actions form { flex: 1 1 auto; }
+  body.admin-page.modern-dashboard .doctor-review-actions .btn { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.admin-page.modern-dashboard *,
+  body.admin-page.modern-dashboard *::before,
+  body.admin-page.modern-dashboard *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}

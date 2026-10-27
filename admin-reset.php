@@ -51,27 +51,30 @@ try {
   <link rel="stylesheet" href="css/theme.css" />
   <script src="js/theme-init.js"></script>
   <link rel="stylesheet" href="css/app-ui.css?v=20261025-8" />
+  <link rel="stylesheet" href="css/admin-auth.css?v=20261027-1" />
 </head>
 <body class="login-page admin-login-page">
   <div class="auth-layout">
-    <aside class="auth-visual"><img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=85" alt="Healthcare professional reviewing information on a tablet" /><span class="auth-mark" aria-hidden="true">&#9881;</span><p class="eyebrow">Operations workspace</p><h1>Protect your workspace.</h1></aside>
+    <aside class="auth-visual"><img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=85" alt="Healthcare professional reviewing information on a tablet" /><span class="auth-mark" aria-hidden="true">&#9881;</span><p class="eyebrow">Administrator workspace</p><h1>Protect your workspace.</h1><p class="admin-auth-summary">Update access credentials after verifying the current administrator account.</p></aside>
     <div class="login-container">
-      <h2>Reset admin credentials</h2>
-      <p class="form-note">Confirm the current credentials before choosing replacements.</p>
-      <?php if ($message): ?><p class="form-note"><?= htmlspecialchars($message) ?></p><?php endif; ?>
-      <?php if ($error): ?><p class="form-note"><?= htmlspecialchars($error) ?></p><?php endif; ?>
-      <form method="POST">
+      <p class="admin-auth-kicker">Account security</p>
+      <h2>Reset credentials</h2>
+      <p class="admin-auth-intro">Confirm your current credentials before choosing replacements.</p>
+      <?php if ($message): ?><p class="admin-auth-feedback is-success" role="status"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
+      <?php if ($error): ?><p class="admin-auth-feedback is-error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
+      <form class="admin-auth-form" method="POST">
         <input type="hidden" name="admin_reset_csrf" value="<?= htmlspecialchars($_SESSION['admin_reset_csrf'], ENT_QUOTES, 'UTF-8') ?>" />
-        <input type="text" placeholder="Current username" name="current_username" required autocomplete="username" />
-        <input type="password" placeholder="Current password" name="current_password" required autocomplete="current-password" />
-        <input type="text" placeholder="New username" name="new_username" required autocomplete="username" />
-        <input type="password" placeholder="New password (8+ characters)" name="new_password" required autocomplete="new-password" />
-        <input type="password" placeholder="Confirm new password" name="confirm_password" required autocomplete="new-password" />
+        <div class="admin-auth-field"><label for="current-username">Current username</label><input id="current-username" type="text" name="current_username" required autocomplete="username" /></div>
+        <div class="admin-auth-field"><label for="current-password">Current password</label><div class="admin-password-control"><input id="current-password" data-password-name="current password" type="password" name="current_password" required autocomplete="current-password" /><button class="admin-password-toggle" type="button" data-password-toggle aria-controls="current-password" aria-label="Show current password" aria-pressed="false">Show</button></div></div>
+        <div class="admin-auth-field"><label for="new-username">New username</label><input id="new-username" type="text" name="new_username" required autocomplete="username" /></div>
+        <div class="admin-auth-field"><label for="new-password">New password</label><div class="admin-password-control"><input id="new-password" data-password-name="new password" type="password" name="new_password" required autocomplete="new-password" minlength="8" /><button class="admin-password-toggle" type="button" data-password-toggle aria-controls="new-password" aria-label="Show new password" aria-pressed="false">Show</button></div></div>
+        <div class="admin-auth-field"><label for="confirm-password">Confirm new password</label><div class="admin-password-control"><input id="confirm-password" data-password-name="confirmation password" type="password" name="confirm_password" required autocomplete="new-password" minlength="8" /><button class="admin-password-toggle" type="button" data-password-toggle aria-controls="confirm-password" aria-label="Show confirmation password" aria-pressed="false">Show</button></div></div>
         <button type="submit" class="btn login-btn">Update credentials</button>
       </form>
-      <p class="switch-link"><a href="admin-login.html">Back to admin login</a></p>
+      <nav class="admin-auth-links" aria-label="Administrator account links"><a href="admin-login.html">Back to administrator sign in</a></nav>
     </div>
   </div>
+  <script src="js/admin-auth.js" defer></script>
   <script src="js/design-switch.js?v=2"></script>
 </body>
 </html>

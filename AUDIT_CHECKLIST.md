@@ -149,3 +149,30 @@ At the baseline review, the reviewed source set contained 12,970 lines; the inve
 - Suggestion creation is tied to an appointment because the existing `patient_suggestions.appointment_id` column is `NOT NULL`; a direct-assignment-only patient without an appointment cannot receive a suggestion until an appointment exists.
 - Browser screenshots were not reliable evidence of a true 390 CSS-pixel viewport: the 390-pixel output reported `innerWidth=504` with matching document width. No true mobile-device visual or interaction run is claimed.
 - The audit covers the 101 inventoried application files listed above. Live secrets, generated/binary artifacts, dependencies, and one unreferenced classroom exercise were intentionally excluded. No production-readiness certification is implied.
+
+## Verification addendum — 2026-10-27
+
+| File | Type | Lines inspected | Review status | Issue / verification evidence |
+| --- | --- | ---: | --- | --- |
+| `patient/register_patient.php` | PHP | 1-52 | Verified after fix | Registration field validation now runs before the database include. Same-origin CSRF-token POST with malformed fields returned the expected 302 `invalid_input`; no row was written. |
+| `doctor/register_doctor.php` | PHP | 1-62 | Verified after fix | Department and field validation now run before the database include. Same-origin CSRF-token POST with malformed fields returned the expected 302 `invalid_input`; no row was written. |
+| `includes/db_connection.php` | PHP | 1-24 | Verified after fix | The documented `DB_CONNECT_TIMEOUT` setting is parsed as an integer in the 1-30 range and passed in the PDO DSN; invalid values fall back to 5. PHP lint and read-only `SELECT 1` passed. No patient records were queried. |
+| `README.md` | Markdown | 1-429 | Verified after fix | Removed the unused `PYTHON_BIN` setup instruction. `git diff --check` passed. |
+| `docs/FULL_PROJECT_AUDIT.md` | Markdown | 1-175 | Reviewed | Full current audit findings, coverage, dependency map, test evidence, commands, and limitations are recorded. |
+
+Additional current checks: all 38 PHP files linted; all 7 JavaScript files passed `node --check`; Python compileall passed excluding venv/cache; ML pytest 5 passed; RAG pytest 32 passed and 2 optional tests skipped; both `pip check` commands reported no broken requirements. Temporary loopback API checks passed for RAG health plus PHP-to-Python protected-request contract and ML health/model loading; test processes were stopped and their ports closed. PHP PDO `SELECT 1` and read-only schema metadata checks passed (9 tables, 11 foreign keys). Valid registration, CRUD, and live patient inference remain untested because no disposable database is configured; the regular schema was not modified.
+
+## Administrator UI addendum — 2026-10-27
+
+- `admin-dashboard.php` — reviewed; PHP lint passed; existing admin backend forms and routes retained.
+- `css/admin-dashboard.css` — added and source-reviewed; admin spacing, cards, queue rows, accessible focus, and responsive breakpoints use shared theme tokens.
+- `admin-dashboard.php` — updated to load the admin stylesheet after shared styles.
+- `git diff --check` — passed. `curl.exe -I` returned HTTP 200 for `css/admin-dashboard.css` and HTTP 302 from the protected dashboard to `admin-login.html`. Authenticated browser rendering and responsive viewport verification were not run. PowerShell `Invoke-WebRequest` threw before receiving a response.
+
+## Administrator authentication UI addendum — 2026-10-27
+
+- `admin-login.html` — updated presentation and accessible field labels; login action and CSRF contract retained.
+- `admin-reset.php` — updated presentation and escaped feedback; reset authorization, CSRF token, and password hashing logic retained; PHP lint passed.
+- `css/admin-auth.css` — added shared admin login/reset styling and mobile layout; HTTP 200.
+- `js/admin-auth.js` — added accessible password visibility toggles; `node --check` passed; HTTP 200.
+- `curl.exe -I` returned HTTP 200 for `admin-login.html`, `css/admin-auth.css`, and `js/admin-auth.js`. The admin login CSRF endpoint returned a valid token shape; token value withheld. Login/reset submission and authenticated browser rendering were not tested.

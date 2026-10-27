@@ -922,6 +922,7 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
     }
   </style>
   <link rel="stylesheet" href="css/app-ui.css?v=20261025-8" />
+  <link rel="stylesheet" href="css/admin-dashboard.css?v=20261027-1" />
 </head>
 <body class="admin-page modern-dashboard" data-user-name="Administrator" data-user-role="Administration">
   <main class="admin-shell">

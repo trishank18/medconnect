@@ -426,4 +426,4 @@ medconnect/
 
 ## Deployment notes
 
-For deployment, use HTTPS, a managed MySQL database, server-side environment variables, restricted network access to the RAG service, and a production process manager for Uvicorn. Do not use the development server as a public internet service. Import the schema from `database/setup.sql`, configure `DB_*`, `PYTHON_BIN`, `GEMINI_*`, and `RAG_*` values, and keep generated exports outside public web access.
+For deployment, use HTTPS, a managed MySQL database, server-side environment variables, restricted network access to the RAG service, and a production process manager for Uvicorn. Do not use the development server as a public internet service. Import the schema from `database/setup.sql`, configure the documented `DB_*`, `ML_*`, `DEVICE_INGEST_TOKEN`, `GEMINI_*`, and `RAG_*` values, and keep generated exports outside public web access.

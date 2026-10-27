@@ -6,8 +6,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST'
     header('Location: ../patient-register.html?error=invalid_request');
     exit();
 }
-require_once __DIR__ . '/../includes/db_connection.php';
-
     $fullname = trim((string) ($_POST['fullname'] ?? ''));
     $email = trim((string) ($_POST['email'] ?? ''));
     $phone = trim((string) ($_POST['phone'] ?? ''));
@@ -26,6 +24,7 @@ require_once __DIR__ . '/../includes/db_connection.php';
         header('Location: ../patient-register.html?error=invalid_input');
         exit();
     }
+    require_once __DIR__ . '/../includes/db_connection.php';
     $password = password_hash($plainPassword, PASSWORD_DEFAULT);
 
     try {

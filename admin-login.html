@@ -9,23 +9,24 @@
   <link rel="stylesheet" href="css/theme.css" />
   <script src="js/theme-init.js"></script>
   <link rel="stylesheet" href="css/app-ui.css?v=20261025-8" />
+  <link rel="stylesheet" href="css/admin-auth.css?v=20261027-1" />
 </head>
 <body class="login-page admin-login-page">
   <div class="auth-layout">
-    <aside class="auth-visual"><img src="https://images.unsplash.com/photo-1666214280391-8ff5bd3c0bf0?auto=format&fit=crop&w=900&q=85" alt="Healthcare professionals reviewing clinical information on a computer" /><span class="auth-mark" aria-hidden="true">&#9881;</span><p class="eyebrow">Operations workspace</p><h1>Verify every clinician.</h1></aside>
+    <aside class="auth-visual"><img src="https://images.unsplash.com/photo-1666214280391-8ff5bd3c0bf0?auto=format&fit=crop&w=900&q=85" alt="Healthcare professionals reviewing clinical information on a computer" /><span class="auth-mark" aria-hidden="true">&#9881;</span><p class="eyebrow">Administrator workspace</p><h1>Care operations, clearly in view.</h1><p class="admin-auth-summary">Review clinician access and manage the MedConnect care network from one secure workspace.</p></aside>
     <div class="login-container">
-      <h2>Administrator Login</h2>
-      <p class="form-note">Use the administrator credentials configured on the server.</p>
+      <p class="admin-auth-kicker">Secure sign in</p>
+      <h2>Welcome back</h2>
+      <p class="admin-auth-intro">Sign in with the administrator credentials configured on the server.</p>
       <div id="admin-login-status" class="login-status" role="alert" hidden></div>
-      <form action="admin-login.php" method="POST" data-csrf-form="admin_login">
+      <form class="admin-auth-form" action="admin-login.php" method="POST" data-csrf-form="admin_login">
         <input type="hidden" name="csrf_token" value="" />
         <p class="form-note" data-form-csrf-error role="alert"></p>
-        <input type="text" placeholder="Admin username" name="username" required autocomplete="username" />
-        <input type="password" placeholder="Admin password" name="password" required autocomplete="current-password" />
+        <div class="admin-auth-field"><label for="admin-username">Username</label><input id="admin-username" type="text" name="username" required autocomplete="username" placeholder="Enter your username" /></div>
+        <div class="admin-auth-field"><label for="admin-password">Password</label><div class="admin-password-control"><input id="admin-password" data-password-name="password" type="password" name="password" required autocomplete="current-password" placeholder="Enter your password" /><button class="admin-password-toggle" type="button" data-password-toggle aria-controls="admin-password" aria-label="Show password" aria-pressed="false">Show</button></div></div>
         <button type="submit" class="btn login-btn">Sign in</button>
       </form>
-      <p class="switch-link"><a href="admin-reset.php">Reset admin credentials</a></p>
-      <p class="switch-link"><a href="index.html">Return to MedConnect</a></p>
+      <nav class="admin-auth-links" aria-label="Administrator account links"><a href="admin-reset.php">Reset administrator credentials</a><a href="index.html">Return to MedConnect</a></nav>
     </div>
   </div>
   <script src="js/form-csrf.js"></script>
@@ -42,6 +43,7 @@
       adminLoginStatus.hidden = false;
     }
   </script>
+  <script src="js/admin-auth.js" defer></script>
   <script src="js/design-switch.js?v=2"></script>
 </body>
 </html>
