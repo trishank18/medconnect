@@ -263,7 +263,8 @@ erDiagram
     }
 ```
 
-The schema source is [`read me .txt/sql.txt`](<read me .txt/sql.txt>). The
+The initial schema and local-only demo fixtures are in
+[`database/setup.sql`](./database/setup.sql). The
 database is the source of truth for private records; generated CSV exports are
 operational artifacts and must not be used as the RAG corpus.
 
@@ -292,7 +293,7 @@ sequenceDiagram
 
 The device endpoint must receive `DEVICE_INGEST_TOKEN` from server environment
 configuration. The device example is in
-[`read me .txt/iot_esp32_MAX30102_K12/iot_esp32_MAX30102_K12.txt`](<read me .txt/iot_esp32_MAX30102_K12/iot_esp32_MAX30102_K12.txt>).
+[`docs/device/esp32-max30102.ino`](./docs/device/esp32-max30102.ino).
 
 ## 5. Assistant routing and connections
 

@@ -2,7 +2,7 @@ MedConnect local setup with XAMPP
 
 1. Place the project folder at C:\xampp\htdocs\medconnect.
 2. Start Apache and MySQL from the XAMPP Control Panel.
-3. For a new local database only, create `medconnect` in phpMyAdmin and import `sql.txt`.
+3. For a new local database only, create `medconnect` in phpMyAdmin and import `database/setup.sql`.
    For an existing database, do not import the full setup script; use only a required migration.
 4. Configure the server-only values in the project `.env` file. Never use the template values as secrets.
 5. Open http://localhost/medconnect/ and sign in with an existing account.

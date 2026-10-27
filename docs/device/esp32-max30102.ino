@@ -6,9 +6,9 @@
 #include <LiquidCrystal.h> // Include the LCD library
 
 // WiFi Credentials
-const char* ssid = "TRISHANK";
+const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
-const char* serverUrl = "http://192.168.137.218/medconnect/save_data.php"; // Update IP if needed
+const char* serverUrl = "http://YOUR_XAMPP_HOST/medconnect/save_data.php"; // Use HTTPS outside a trusted local network
 const char* deviceToken = "SET_DEVICE_INGEST_TOKEN";
 
 // LCD Connections (as per your table)

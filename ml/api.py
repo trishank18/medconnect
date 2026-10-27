@@ -8,11 +8,13 @@ from typing import Any
 
 import joblib
 import pandas as pd
+from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Query
-
 from db import fetch_patient_metrics
 
 BASE = Path(__file__).resolve().parent
+load_dotenv(BASE.parent / ".env", override=False)
+
 MODEL_DIR = BASE / "models"
 DEFAULT_HISTORY_LIMIT = 100
 MIN_HISTORY = 2

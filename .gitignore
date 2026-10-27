@@ -6,6 +6,7 @@
 # Python generated files
 __pycache__/
 *.py[cod]
+.pytest_cache/
 python-rag/.venv/
 python-rag/data/
 python-rag/documents/*

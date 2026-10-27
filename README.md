@@ -178,7 +178,7 @@ Start **Apache** and **MySQL** from the XAMPP Control Panel.
 Only for a **new local development database**, create the database in phpMyAdmin and import:
 
 ```text
-read me .txt\sql.txt
+database\setup.sql
 ```
 
 The SQL file includes local demonstration doctor and patient accounts that share a test password. Do not expose those fixtures as production accounts. It does not generate health readings. Do not import the schema over an existing MedConnect database; use only the applicable migration for an existing installation.
@@ -186,8 +186,12 @@ The SQL file includes local demonstration doctor and patient accounts that share
 For an existing database created before doctor verification was added, run:
 
 ```text
-read me .txt\migrate-verification.sql
+database\migrations\legacy-add-verification-status.sql
 ```
+
+That legacy migration is only for an older database whose `doctors` table does
+not yet have `verification_status`. The current setup schema already includes
+the column; inspect the schema before applying any migration.
 
 ### 3. Configure secrets
 
@@ -350,7 +354,10 @@ C:\xampp\php\php.exe -l doctor-dashboard.php
 RAG unit tests:
 
 ```powershell
-python -m unittest discover -s python-rag\tests -v
+.\python-rag\.venv\Scripts\python.exe -m pip install -r tests\requirements.txt
+.\python-rag\.venv\Scripts\python.exe -m pytest python-rag\tests -q
+.\ml\.venv\Scripts\python.exe -m pip install -r tests\requirements.txt
+.\ml\.venv\Scripts\python.exe -m pytest ml\tests -q
 ```
 
 Manual checks:
@@ -383,7 +390,14 @@ Manual checks:
 ```text
 medconnect/
 |-- css/                       Stylesheets, including assistant UI
+|-- database/                  New-install SQL and historical migrations (web access denied)
+|   |-- migrations/             Explicit schema changes for older installations
+|   `-- setup.sql               Initial schema plus local-only demo accounts
 |-- doctor/                    Doctor registration/login pages
+|-- docs/                      Architecture, setup, and device documentation (web access denied)
+|   |-- device/                 ESP32 example firmware
+|   |-- setup/                  Local XAMPP setup
+|   `-- project-organization-audit.md  Inventory, changes, and verification
 |-- exports/                   Legacy export folder (web access denied)
 |-- includes/                  Database, authentication, and SMS helpers
 |-- js/                        Dashboard and assistant JavaScript
@@ -397,7 +411,8 @@ medconnect/
 |   |-- gemini_service.py      Grounded and general Gemini calls
 |   |-- ingest.py              Index builder
 |   |-- retrieval.py           FAISS retrieval
-|-- read me .txt/sql.txt       MySQL schema
+|-- tests/                     Shared test-only Python dependencies
+|   `-- requirements.txt       pytest; kept out of service dependencies
 |-- gemini-chat.php            Authenticated PHP assistant bridge
 |-- patient-dashboard.php      Patient workspace
 |-- doctor-dashboard.php       Doctor workspace
@@ -411,4 +426,4 @@ medconnect/
 
 ## Deployment notes
 
-For deployment, use HTTPS, a managed MySQL database, server-side environment variables, restricted network access to the RAG service, and a production process manager for Uvicorn. Do not use the development server as a public internet service. Import the schema from `read me .txt/sql.txt`, configure `DB_*`, `PYTHON_BIN`, `GEMINI_*`, and `RAG_*` values, and keep generated exports outside public web access.
+For deployment, use HTTPS, a managed MySQL database, server-side environment variables, restricted network access to the RAG service, and a production process manager for Uvicorn. Do not use the development server as a public internet service. Import the schema from `database/setup.sql`, configure `DB_*`, `PYTHON_BIN`, `GEMINI_*`, and `RAG_*` values, and keep generated exports outside public web access.

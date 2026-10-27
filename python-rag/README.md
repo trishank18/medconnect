@@ -81,14 +81,15 @@ The service uses the official `google-genai` Python SDK. Model names are not har
 Run the no-paid-call suite from the root:
 
 ```powershell
-python -m unittest discover -s python-rag/tests -v
+python -m pip install -r tests/requirements.txt
+python -m pytest python-rag/tests -q
 ```
 
 It uses mocked Gemini requests and covers routing, source behavior, malformed input, identity-data denial at the Python boundary, transient/key/model errors, conversation isolation/bounds, the PHP/Python payload contract, chunk metadata, index model compatibility, and retrieval ranking. The optional paid/live model test is skipped unless the key is present; run separately only when desired:
 
 ```powershell
 $env:RUN_LIVE_GEMINI = '1'
-python -m unittest python-rag.tests.test_live_gemini -v
+python -m pytest python-rag/tests/test_live_gemini.py -q
 ```
 
 PHP syntax can be checked with:

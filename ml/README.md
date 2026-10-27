@@ -30,11 +30,12 @@ py -3 -m venv ml\.venv
 .\ml\.venv\Scripts\python.exe -m pip install -r ml\requirements.txt
 ```
 
-Set `ML_API_TOKEN`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and
-`DB_PASSWORD` in the environment used by FastAPI. Configure the same
-`ML_API_TOKEN` and `ML_API_URL=http://127.0.0.1:8001` in Apache's server
-environment. Use [`.env.example`](.env.example) as a variable reference; do
-not put secrets in a web-accessible file.
+The ML service loads the project-root `.env` with process environment variables
+taking precedence. Set `ML_API_TOKEN`, `DB_HOST`, `DB_PORT`, `DB_NAME`,
+`DB_USER`, and `DB_PASSWORD` there once. PHP uses the same database settings.
+Configure the same `ML_API_TOKEN` and `ML_API_URL=http://127.0.0.1:8001` in
+Apache's server environment. Use the project-root `.env.example` as a variable
+reference; do not put secrets in a web-accessible file.
 
 Apply [the migration](migrations/001_create_ml_predictions.sql) once in the
 existing `medconnect` database. It only creates the separate prediction table;
@@ -56,11 +57,6 @@ Start the local-only API on port 8001:
 
 ```powershell
 $env:ML_API_TOKEN = '<same token configured for Apache>'
-$env:DB_HOST = '127.0.0.1'
-$env:DB_PORT = '3306'
-$env:DB_NAME = 'medconnect'
-$env:DB_USER = 'root'
-$env:DB_PASSWORD = ''
 .\ml\.venv\Scripts\python.exe -m uvicorn api:app --app-dir ml --host 127.0.0.1 --port 8001
 ```
 
@@ -91,7 +87,8 @@ until a later observed reading is reconciled.
 ## Tests
 
 ```powershell
-.\ml\.venv\Scripts\python.exe -m unittest discover -s ml\tests -v
+.\ml\.venv\Scripts\python.exe -m pip install -r tests\requirements.txt
+.\ml\.venv\Scripts\python.exe -m pytest ml\tests -q
 .\ml\.venv\Scripts\python.exe -m py_compile ml\api.py ml\db.py ml\preprocess.py ml\train_model.py
 C:\xampp\php\php.exe -l includes\ml_client.php
 C:\xampp\php\php.exe -l add-health.php
