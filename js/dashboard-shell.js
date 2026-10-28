@@ -15,14 +15,17 @@
     : isDoctor
       ? [
         { title: 'Overview', links: [
-          ['bi-grid-1x2-fill', 'Dashboard', '#overview-title'],
-          ['bi-people', 'My Patients', '#priority-queue'],
-          ['bi-heart-pulse', 'Vitals Monitoring', '#vitals-monitor']
+          ['bi-grid-1x2-fill', 'Dashboard', 'doctor-dashboard.php#overview-title'],
+          ['bi-people', 'My Patients', 'doctor-dashboard.php#priority-queue'],
+          ['bi-heart-pulse', 'Vitals Monitoring', 'doctor-dashboard.php#vitals-monitor']
+        ] },
+        { title: 'Care network', links: [
+          ['bi-hospital', 'Doctors', 'doctor-dashboard.php#doctors-page']
         ] },
         { title: 'Operations', links: [
-          ['bi-calendar3', 'Appointments', '#appointments-tab-pane'],
-          ['bi-capsule', 'Prescriptions', '#appointments-tab-pane'],
-          ['bi-chat-square-text', 'Patient Suggestions', '#appointments-tab-pane']
+          ['bi-calendar3', 'Appointments', 'doctor-dashboard.php#appointments-section'],
+          ['bi-capsule', 'Prescriptions', 'doctor-dashboard.php#appointments-section'],
+          ['bi-chat-square-text', 'Patient Suggestions', 'doctor-dashboard.php#appointments-section']
         ] },
         { title: 'Account', links: [
           ['bi-person-circle', 'Profile', '#viewProfileModal'],
@@ -78,6 +81,19 @@
   }
 
   var nav = aside.querySelector('nav');
+  function setActiveNavLink(link) {
+    nav.querySelectorAll('a').forEach(function (navLink) { navLink.classList.remove('is-active'); });
+    if (link) link.classList.add('is-active');
+  }
+
+  var doctorActiveLabel = 'Dashboard';
+  if (isDoctor) {
+    var legacyDoctorView = new URLSearchParams(window.location.search).get('view') || '';
+    doctorActiveLabel = window.location.hash === '#doctors-page' || legacyDoctorView === 'doctors' ? 'Doctors'
+      : window.location.hash === '#appointments-section' || legacyDoctorView === 'appointments' ? 'Appointments'
+      : window.location.hash === '#priority-queue' ? 'My Patients'
+      : window.location.hash === '#vitals-monitor' ? 'Vitals Monitoring' : 'Dashboard';
+  }
   var groups = (isDoctor || isPatient) ? items : [{ title: '', links: items }];
   groups.forEach(function (group) {
     if (group.title) {
@@ -90,15 +106,17 @@
       var link = document.createElement('a');
       link.href = item[2];
       link.innerHTML = '<i class="bi ' + item[0] + '" aria-hidden="true"></i><span>' + item[1] + '</span>';
-      if (item[1] === 'Dashboard' || item[2] === window.location.pathname.split('/').pop()) {
+      if ((isDoctor && item[1] === doctorActiveLabel) || (!isDoctor && (item[1] === 'Dashboard' || item[2] === window.location.pathname.split('/').pop()))) {
         link.className = 'is-active';
       }
       link.addEventListener('click', function (event) {
-        var target = document.querySelector(item[2]);
+        // Doctor workspace routes are normal page navigations with a view query.
+        if (isDoctor && item[2].indexOf('doctor-dashboard.php') === 0) return;
+        var target;
+        try { target = document.querySelector(item[2]); } catch (error) { return; }
         if (!target) return;
         event.preventDefault();
-        nav.querySelectorAll('a').forEach(function (navLink) { navLink.classList.remove('is-active'); });
-        link.classList.add('is-active');
+        setActiveNavLink(link);
         if (window.innerWidth <= 900) {
           document.body.classList.remove('sidebar-open');
           var menuToggle = document.querySelector('.mc-sidebar-toggle');
@@ -111,13 +129,6 @@
           var modal = window.bootstrap && window.bootstrap.Modal ? window.bootstrap.Modal.getOrCreateInstance(target) : null;
           if (modal) modal.show();
           else target.classList.add('show');
-          return;
-        }
-        if (item[2] === '#appointments-tab-pane') {
-          document.body.classList.add('show-legacy-sections');
-          var appointmentTab = document.querySelector('#appointments-tab');
-          if (appointmentTab) appointmentTab.click();
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
           return;
         }
         if (item[2] === '#book-appointment' || item[2] === '#appointments' || item[2] === '#prescriptions') {

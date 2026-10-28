@@ -79,7 +79,7 @@ try {
             if (!$patient_id || !$appointment_id || $prescription === ''
                 || strlen($prescription) > 10000 || strlen($medication) > 100
                 || strlen($dosage) > 50 || strlen($instructions) > 5000) {
-              header('Location: doctor-dashboard.php?error=invalid_prescription#appointments-tab-pane');
+              header('Location: doctor-dashboard.php?error=invalid_prescription#appointments-section');
               exit();
             }
             
@@ -90,7 +90,7 @@ try {
               ':doctor_id' => $_SESSION['auth']['doctor']['id'],
             ]);
             if (!$authorizationStmt->fetchColumn()) {
-              header('Location: doctor-dashboard.php?error=unauthorized_patient');
+              header('Location: doctor-dashboard.php?error=unauthorized_patient#appointments-section');
               exit();
             }
             $insertStmt = $conn->prepare("INSERT INTO patient_prescriptions 
@@ -110,7 +110,7 @@ try {
             $suggestion = trim((string) ($_POST['suggestion'] ?? ''));
 
             if (!$patientId || !$appointmentId || $suggestion === '' || strlen($suggestion) > 5000) {
-              header('Location: doctor-dashboard.php?error=invalid_suggestion#appointments-tab-pane');
+              header('Location: doctor-dashboard.php?error=invalid_suggestion#appointments-section');
               exit();
             }
 
@@ -128,7 +128,7 @@ try {
               ':doctor_id' => (int) $_SESSION['auth']['doctor']['id'],
             ]);
             if (!$authorizationStmt->fetchColumn()) {
-              header('Location: doctor-dashboard.php?error=unauthorized_patient#appointments-tab-pane');
+              header('Location: doctor-dashboard.php?error=unauthorized_patient#appointments-section');
               exit();
             }
 
@@ -139,7 +139,7 @@ try {
               ':appointment_id' => $appointmentId,
               ':suggestion' => $suggestion,
             ]);
-            header('Location: doctor-dashboard.php?suggestion_saved=1#appointments-tab-pane');
+            header('Location: doctor-dashboard.php?suggestion_saved=1#appointments-section');
             exit();
           } elseif (isset($_POST['delete_prescription'])) {
             $prescriptionId = filter_input(INPUT_POST, 'prescription_id', FILTER_VALIDATE_INT);
@@ -151,13 +151,20 @@ try {
                 ':doctor_id' => $_SESSION['auth']['doctor']['id']
               ]);
             }
-        } elseif (isset($_POST['update_status'])) {
+        } elseif (isset($_POST['update_status']) || isset($_POST['update_notes'])) {
             $appointment_id = filter_input(INPUT_POST, 'appointment_id', FILTER_VALIDATE_INT);
-            $status = $_POST['status'] ?? '';
             $notes = trim((string) ($_POST['notes'] ?? ''));
-            if ($appointment_id && in_array($status, ['pending', 'completed', 'cancelled'], true) && strlen($notes) <= 3000) {
-              $updateStmt = $conn->prepare("UPDATE appointments SET status = :status, notes = :notes WHERE id = :id AND doctor_id = :doctor_id");
-              $updateStmt->execute([':status' => $status, ':notes' => $notes, ':id' => $appointment_id, ':doctor_id' => $_SESSION['auth']['doctor']['id']]);
+            if ($appointment_id && strlen($notes) <= 3000) {
+              if (isset($_POST['update_status'])) {
+                $status = $_POST['status'] ?? '';
+                if (in_array($status, ['pending', 'completed', 'cancelled'], true)) {
+                  $updateStmt = $conn->prepare("UPDATE appointments SET status = :status, notes = :notes WHERE id = :id AND doctor_id = :doctor_id");
+                  $updateStmt->execute([':status' => $status, ':notes' => $notes, ':id' => $appointment_id, ':doctor_id' => $_SESSION['auth']['doctor']['id']]);
+                }
+              } else {
+                $updateStmt = $conn->prepare("UPDATE appointments SET notes = :notes WHERE id = :id AND doctor_id = :doctor_id");
+                $updateStmt->execute([':notes' => $notes, ':id' => $appointment_id, ':doctor_id' => $_SESSION['auth']['doctor']['id']]);
+              }
             }
         }
     }
@@ -292,6 +299,17 @@ try {
     http_response_code(500);
     exit('The doctor workspace is temporarily unavailable. Please try again later.');
 }
+$appointmentsByPatient = [];
+foreach ($appointments as $appointment) {
+    $patientId = (int) $appointment['patient_id'];
+    if (!isset($appointmentsByPatient[$patientId])) {
+        $appointmentsByPatient[$patientId] = [
+            'patient_name' => $appointment['patient_name'],
+            'appointments' => [],
+        ];
+    }
+    $appointmentsByPatient[$patientId]['appointments'][] = $appointment;
+}
 $doctorDisplayName = preg_replace('/^(?:Dr\.?\s*)+/i', '', trim((string) $doctor['fullname']));
 $mlHealthContext = stream_context_create(['http' => ['timeout' => 1, 'ignore_errors' => true]]);
 $mlHealth = @file_get_contents(rtrim(getenv('ML_API_URL') ?: 'http://127.0.0.1:8001', '/') . '/health', false, $mlHealthContext);
@@ -361,9 +379,11 @@ $trendDates = array_keys($trendRows);
 $trendLabels = array_map(static fn($date) => date('M j', strtotime($date)), $trendDates);
 $trendData = [];
 foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
-  $trendData[$metric] = array_map(static function ($row) use ($metric) {
+  // trendRows is keyed by date for aggregation; Chart.js needs positional
+  // arrays aligned with trendLabels, so discard those associative date keys.
+  $trendData[$metric] = array_values(array_map(static function ($row) use ($metric) {
     return $row[$metric] ? round(array_sum($row[$metric]) / count($row[$metric]), 1) : null;
-  }, $trendRows);
+  }, $trendRows));
 }
 ?>
 
@@ -395,13 +415,13 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
     .chart-container { height: 300px; }
   </style>
   <link rel="stylesheet" href="css/business.css">
-  <link rel="stylesheet" href="css/dashboard-modern.css?v=20261025-12">
+  <link rel="stylesheet" href="css/dashboard-modern.css?v=20261028-10">
   <link rel="stylesheet" href="css/theme.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="js/theme-init.js"></script>
-  <script src="js/dashboard-shell.js" defer></script>
+  <script src="js/dashboard-shell.js?v=20261028-3" defer></script>
   <link rel="stylesheet" href="css/app-ui.css?v=20261025-8" />
 </head>
 <body class="bg-light modern-dashboard doctor-modern-dashboard" data-user-name="<?= htmlspecialchars($doctorDisplayName, ENT_QUOTES, 'UTF-8') ?>" data-user-role="<?= htmlspecialchars($doctor['department'] ?: 'Doctor', ENT_QUOTES, 'UTF-8') ?>">
@@ -495,48 +515,26 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
       <article id="priority-queue" class="modern-panel priority-panel">
         <div class="modern-panel-heading"><div><h2>Priority Patient Queue</h2><p>Critical review rule: HR &lt;50 or &gt;120 BPM, or SpO₂ &lt;90%</p></div><div class="queue-controls"><label class="visually-hidden" for="authorized-patient-search">Search authorized patients</label><input id="authorized-patient-search" class="queue-search" type="search" placeholder="Search patients" autocomplete="off"><div class="queue-pills"><button type="button" class="active" data-queue-filter="all">All</button><button type="button" data-queue-filter="critical">Critical</button><button type="button" data-queue-filter="monitoring">Monitoring</button></div></div></div>
         <div class="priority-table-wrap">
-          <table class="priority-table"><thead><tr><th>Patient</th><th>Status</th><th>Heart rate</th><th>SpO₂</th><th>Temperature</th><th>BP</th><th>Updated</th></tr></thead><tbody>
+          <table class="priority-table"><thead><tr><th>Patient</th><th>Status</th><th>Heart rate</th><th>SpO₂</th><th>Temperature</th><th>BP</th><th>Updated</th><th>Patient history</th></tr></thead><tbody>
             <?php foreach ($patients as $priorityPatient): ?>
             <?php $isCritical = in_array($priorityPatient, $criticalPatients, true); $statusLabel = $isCritical ? 'Critical' : 'Monitoring'; ?>
-            <tr data-queue-status="<?= $isCritical ? 'critical' : 'monitoring' ?>" data-patient-name="<?= htmlspecialchars($priorityPatient['fullname'], ENT_QUOTES, 'UTF-8') ?>"><td><strong><?= htmlspecialchars($priorityPatient['fullname']) ?></strong><small>#P-<?= str_pad((string) $priorityPatient['id'], 4, '0', STR_PAD_LEFT) ?></small></td><td><span class="queue-status <?= $isCritical ? 'critical' : 'monitoring' ?>"><?= $statusLabel ?></span></td><td class="<?= $isCritical ? 'danger-value' : 'good-value' ?>"><?= $priorityPatient['heart_rate'] !== null ? htmlspecialchars((string) $priorityPatient['heart_rate']) . ' bpm' : '—' ?></td><td><?= $priorityPatient['spo2'] !== null ? htmlspecialchars((string) $priorityPatient['spo2']) . '%' : '—' ?></td><td><?= $priorityPatient['temperature'] !== null ? htmlspecialchars((string) $priorityPatient['temperature']) . '°C' : '—' ?></td><td><?= $priorityPatient['blood_pressure_sys'] !== null && $priorityPatient['blood_pressure_dia'] !== null ? htmlspecialchars((string) $priorityPatient['blood_pressure_sys']) . '/' . htmlspecialchars((string) $priorityPatient['blood_pressure_dia']) : '—' ?></td><td class="updated-value"><?= $priorityPatient['recorded_at'] ? htmlspecialchars(date('M j, H:i', strtotime($priorityPatient['recorded_at']))) : '—' ?></td></tr>
+            <tr data-queue-status="<?= $isCritical ? 'critical' : 'monitoring' ?>" data-patient-id="<?= (int) $priorityPatient['id'] ?>" data-patient-name="<?= htmlspecialchars($priorityPatient['fullname'], ENT_QUOTES, 'UTF-8') ?>"><td><strong><?= htmlspecialchars($priorityPatient['fullname']) ?></strong><small>#P-<?= str_pad((string) $priorityPatient['id'], 4, '0', STR_PAD_LEFT) ?></small></td><td><span class="queue-status <?= $isCritical ? 'critical' : 'monitoring' ?>"><?= $statusLabel ?></span></td><td class="<?= $isCritical ? 'danger-value' : 'good-value' ?>"><?= $priorityPatient['heart_rate'] !== null ? htmlspecialchars((string) $priorityPatient['heart_rate']) . ' bpm' : '—' ?></td><td><?= $priorityPatient['spo2'] !== null ? htmlspecialchars((string) $priorityPatient['spo2']) . '%' : '—' ?></td><td><?= $priorityPatient['temperature'] !== null ? htmlspecialchars((string) $priorityPatient['temperature']) . '°C' : '—' ?></td><td><?= $priorityPatient['blood_pressure_sys'] !== null && $priorityPatient['blood_pressure_dia'] !== null ? htmlspecialchars((string) $priorityPatient['blood_pressure_sys']) . '/' . htmlspecialchars((string) $priorityPatient['blood_pressure_dia']) : '—' ?></td><td class="updated-value"><?= $priorityPatient['recorded_at'] ? htmlspecialchars(date('M j, H:i', strtotime($priorityPatient['recorded_at']))) : '—' ?></td><td><button type="button" class="doctor-vitals-history" data-patient-trends-toggle data-patient-id="<?= (int) $priorityPatient['id'] ?>" aria-expanded="false" aria-controls="queue-trends-<?= (int) $priorityPatient['id'] ?>"><i class="bi bi-graph-up" aria-hidden="true"></i> Trends</button></td></tr>
+            <tr class="patient-trends-row" id="queue-trends-<?= (int) $priorityPatient['id'] ?>" hidden><td colspan="8"><section class="patient-inline-trends" aria-label="Vital trends for <?= htmlspecialchars($priorityPatient['fullname'], ENT_QUOTES, 'UTF-8') ?>"><h3><?= htmlspecialchars($priorityPatient['fullname']) ?> — vital trends</h3><?php if (!empty($priorityPatient['health_history'])): ?><div class="patient-inline-chart-grid"><div><span>Heart rate (BPM)</span><canvas id="queue-heart-<?= (int) $priorityPatient['id'] ?>"></canvas></div><div><span>SpO₂ (%)</span><canvas id="queue-spo2-<?= (int) $priorityPatient['id'] ?>"></canvas></div><div><span>Temperature (°C)</span><canvas id="queue-temp-<?= (int) $priorityPatient['id'] ?>"></canvas></div><div><span>Blood pressure (mmHg)</span><canvas id="queue-bp-<?= (int) $priorityPatient['id'] ?>"></canvas></div></div><?php else: ?><p class="modern-empty">No health history is available for this patient.</p><?php endif; ?></section></td></tr>
           <?php endforeach; ?>
-          <?php if (!$patients): ?><tr><td colspan="7" class="modern-empty">No authorized patients are available.</td></tr><?php endif; ?>
+          <?php if (!$patients): ?><tr><td colspan="8" class="modern-empty">No authorized patients are available.</td></tr><?php endif; ?>
           </tbody></table>
         </div>
-      </article>
     </section>
 
-    <ul class="nav nav-tabs mb-4" id="doctorDashboardTabs" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard-tab-pane" type="button" role="tab" aria-controls="dashboard-tab-pane" aria-selected="true">
-          <i class="bi bi-speedometer2 me-1"></i>Dashboard
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="doctors-tab" data-bs-toggle="tab" data-bs-target="#doctors-tab-pane" type="button" role="tab" aria-controls="doctors-tab-pane" aria-selected="false">
-          <i class="bi bi-hospital me-1"></i>Doctors
-        </button>
-      </li>
-      <?php if ($canAccessAppointments): ?>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="appointments-tab" data-bs-toggle="tab" data-bs-target="#appointments-tab-pane" type="button" role="tab" aria-controls="appointments-tab-pane" aria-selected="false">
-          <i class="bi bi-calendar-check me-1"></i>Appointments
-          <span class="badge bg-info ms-1"><?= count($appointments) ?></span>
-        </button>
-      </li>
-      <?php endif; ?>
-    </ul>
-
-    <div class="tab-content" id="doctorDashboardTabContent">
-      <div class="tab-pane fade" id="doctors-tab-pane" role="tabpanel" aria-labelledby="doctors-tab" tabindex="0">
+    <main class="doctor-view-content">
+      <section class="doctor-page-view modern-panel doctor-directory-page" id="doctors-page">
 
     <!-- Doctors Directory -->
-    <div class="card mb-5">
-      <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-hospital"></i> Doctors by Department</h5>
-        <span class="badge bg-light text-dark"><?= count($doctorsByDepartment) ?> Departments</span>
+    <div class="modern-panel-heading">
+        <div><h2><i class="bi bi-hospital"></i> Doctors by Department</h2><p>Browse the care network by specialty</p></div>
+        <span class="modern-count"><?= count($doctorsByDepartment) ?> Departments</span>
       </div>
-      <div class="card-body">
+      <div class="doctor-page-body">
         <?php if (empty($doctorsByDepartment)): ?>
           <div class="alert alert-info mb-0">No doctors are available yet.</div>
         <?php else: ?>
@@ -560,7 +558,7 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
               <?php $departmentTabId = 'department-tab-' . $departmentIndex; ?>
               <div class="tab-pane fade <?= $departmentIndex === 0 ? 'show active' : '' ?>" id="<?= $departmentTabId ?>-pane" role="tabpanel" aria-labelledby="<?= $departmentTabId ?>" tabindex="0">
                 <div class="card department-card border-info">
-                  <div class="card-header bg-light fw-bold">
+                  <div class="card-header fw-bold">
                     <i class="bi bi-building me-1"></i><?= htmlspecialchars($departmentName) ?> Department
                   </div>
                   <div class="list-group list-group-flush">
@@ -583,230 +581,111 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
           </div>
         <?php endif; ?>
       </div>
-    </div>
+      </section>
 
-      </div>
-
-      <div class="tab-pane fade show active" id="dashboard-tab-pane" role="tabpanel" aria-labelledby="dashboard-tab" tabindex="0">
-
-    <!-- Patients Section -->
-    <div class="card mb-5">
-      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-people-fill"></i> Your Patients & Health Data</h5>
-        <span class="badge bg-light text-dark"><?= count($patients) ?> Patients</span>
-      </div>
-      <div class="card-body">
-        <?php if (empty($patients)): ?>
-          <div class="alert alert-info">No patients found yet.</div>
-        <?php else: ?>
-          <div class="table-responsive">
-            <table class="table table-hover align-middle">
-              <thead>
-                <tr>
-                  <th>Patient</th>
-                  <th>Contact</th>
-                  <th>Health Metrics</th>
-                  <th>Model estimates</th>
-                  <th>Last Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($patients as $p): ?>
-                  <tr>
-                    <td>
-                      <div class="d-flex align-items-center">
-                        <div class="profile-icon me-3">
-                          <?= strtoupper(substr($p['fullname'], 0, 1)) ?>
-                        </div>
-                        <div>
-                          <strong><?= htmlspecialchars($p['fullname']) ?></strong>
-                          <div class="text-muted small">Age: <?= htmlspecialchars($p['age']) ?></div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div><?= htmlspecialchars($p['email']) ?></div>
-                      <div class="text-muted small"><?= htmlspecialchars($p['phone']) ?></div>
-                    </td>
-                    <td>
-                      <div class="d-flex flex-wrap gap-2">
-                        <?php if ($p['heart_rate']): ?>
-                          <span class="badge bg-danger">HR: <?= $p['heart_rate'] ?? 'N/A' ?> BPM</span>
-                        <?php endif; ?>
-                        <?php if ($p['spo2']): ?>
-                          <span class="badge bg-info">SpO₂: <?= $p['spo2'] ?? 'N/A' ?>%</span>
-                        <?php endif; ?>
-                        <?php if ($p['temperature']): ?>
-                          <span class="badge bg-warning">Temp: <?= $p['temperature'] ?? 'N/A' ?>°C</span>
-                        <?php endif; ?>
-                        <?php if (isset($p['blood_pressure_sys'], $p['blood_pressure_dia'])): ?>
-                          <span class="badge bg-secondary">BP: <?= "{$p['blood_pressure_sys']}/{$p['blood_pressure_dia']}" ?></span>
-                        <?php endif; ?>
-                      </div>
-                    </td>
-                    <td>
-                      <?php if (!empty($p['ml_predictions'])): ?>
-                        <div class="small text-muted mb-1">Experimental only</div>
-                        <?php foreach ($p['ml_predictions'] as $estimate): ?>
-                          <div><strong><?= htmlspecialchars(str_replace('_', ' ', $estimate['target_name'])) ?>:</strong>
-                            <?= htmlspecialchars((string) $estimate['predicted_value']) ?> <?= htmlspecialchars(['heart_rate'=>'BPM','spo2'=>'%','temperature'=>'°C','blood_pressure_sys'=>'mmHg','blood_pressure_dia'=>'mmHg'][$estimate['target_name']] ?? '') ?> <span class="text-muted">predicted</span><?php if ($estimate['actual_value'] !== null): ?> · actual <?= htmlspecialchars((string) $estimate['actual_value']) ?><?php endif; ?></div>
-                        <?php endforeach; ?>
-                        <div class="small text-muted">Created <?= htmlspecialchars($p['ml_predictions'][0]['prediction_timestamp']) ?> · target <?= htmlspecialchars($p['ml_predictions'][0]['target_timestamp'] ?? 'unspecified') ?> · <?= htmlspecialchars($p['ml_predictions'][0]['model_version']) ?></div>
-                      <?php else: ?><span class="text-muted small">No estimate</span><?php endif; ?>
-                    </td>
-                    <td>
-                      <?= $p['recorded_at'] ? date("M j, Y H:i", strtotime($p['recorded_at'])) : 'N/A' ?>
-                      <?php if (!empty($p['health_history'])): ?>
-                        <button class="btn btn-sm btn-outline-primary trend-btn ms-2" 
-                                data-bs-toggle="modal" 
-                                data-bs-target="#healthTrendsModal"
-                                data-patient-id="<?= $p['id'] ?>"
-                                data-patient-name="<?= htmlspecialchars($p['fullname']) ?>">
-                          <i class="bi bi-graph-up"></i> Trends
-                        </button>
-                      <?php endif; ?>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-        <?php endif; ?>
-      </div>
-    </div>
-
-      </div>
-
-      <div class="tab-pane fade" id="appointments-tab-pane" role="tabpanel" aria-labelledby="appointments-tab" tabindex="0">
+      <section class="doctor-page-view modern-panel doctor-appointments-page" id="appointments-section">
 
     <!-- Appointments Section -->
-    <div class="card">
-      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Patient Appointments</h5>
-        <span class="badge bg-light text-dark"><?= count($appointments) ?> Appointments</span>
+    <div class="modern-panel-heading">
+        <div><h2><i class="bi bi-calendar-check"></i> Patient Appointments</h2><p>Manage visits, notes and patient care actions</p></div>
+        <span class="modern-count"><?= count($appointments) ?> Appointments</span>
       </div>
-      <div class="card-body">
+      <div class="doctor-page-body">
         <?php if (empty($appointments)): ?>
           <div class="alert alert-info">No appointments scheduled yet.</div>
         <?php else: ?>
-          <div class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Patient</th>
-                  <th>Latest Vitals</th>
-                  <th>Date/Time</th>
-                  <th>Status</th>
-                  <th>Notes</th>
-                  <th>Prescriptions</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($appointments as $appt): ?>
-                  <?php $authorizedPatient = $patientsById[(int) $appt['patient_id']] ?? null; ?>
-                  <tr>
-                    <td>
-                      <div class="d-flex align-items-center">
-                        <div class="profile-icon me-3" style="background-color: #6c757d;">
-                          <?= strtoupper(substr($appt['patient_name'], 0, 1)) ?>
-                        </div>
-                        <div>
-                          <strong><?= htmlspecialchars($appt['patient_name']) ?></strong>
-                        </div>
+          <div class="doctor-appointment-list">
+            <?php foreach ($appointmentsByPatient as $patientId => $patientGroup): ?>
+              <details class="doctor-appointment-patient" name="doctor-appointment-patients" id="patient-appointments-<?= (int) $patientId ?>">
+                <summary class="doctor-appointment-patient-summary">
+                  <span class="profile-icon" aria-hidden="true"><?= htmlspecialchars(strtoupper(substr($patientGroup['patient_name'], 0, 1))) ?></span>
+                  <span class="doctor-appointment-patient-name"><?= htmlspecialchars($patientGroup['patient_name'], ENT_QUOTES, 'UTF-8') ?></span>
+                  <i class="bi bi-chevron-down doctor-appointment-chevron" aria-hidden="true"></i>
+                </summary>
+                <div class="doctor-appointment-patient-details">
+                  <?php foreach ($patientGroup['appointments'] as $appt): ?>
+                    <?php $authorizedPatient = $patientsById[(int) $appt['patient_id']] ?? null; ?>
+                    <article class="doctor-appointment-record">
+                      <div class="doctor-appointment-record-heading">
+                        <h3><i class="bi bi-calendar-event" aria-hidden="true"></i><?= htmlspecialchars(date('M j, Y', strtotime($appt['appointment_date']))) ?> <span><?= htmlspecialchars(date('H:i', strtotime($appt['appointment_time']))) ?></span></h3>
+                        <span class="doctor-appointment-status status-<?= htmlspecialchars(strtolower($appt['status']), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(ucfirst($appt['status'])) ?></span>
                       </div>
-                    </td>
-                    <td>
-                      <div class="doctor-vitals-summary">
-                        <span><small>HR</small><strong><?= $appt['latest_heart_rate'] !== null ? htmlspecialchars((string) $appt['latest_heart_rate']) . ' bpm' : '—' ?></strong></span>
-                        <span><small>SpO₂</small><strong><?= $appt['latest_spo2'] !== null ? htmlspecialchars((string) $appt['latest_spo2']) . '%' : '—' ?></strong></span>
-                        <span><small>Temp</small><strong><?= $appt['latest_temperature'] !== null ? htmlspecialchars((string) $appt['latest_temperature']) . '°C' : '—' ?></strong></span>
-                        <span><small>BP</small><strong><?= $appt['latest_blood_pressure_sys'] !== null && $appt['latest_blood_pressure_dia'] !== null ? htmlspecialchars((string) $appt['latest_blood_pressure_sys']) . '/' . htmlspecialchars((string) $appt['latest_blood_pressure_dia']) : '—' ?></strong></span>
-                      </div>
-                      <?php if ($appt['vitals_recorded_at']): ?><small class="doctor-vitals-updated">Recorded <?= htmlspecialchars(date('M j, Y H:i', strtotime($appt['vitals_recorded_at']))) ?></small><?php endif; ?>
-                      <?php if (!empty($authorizedPatient['health_history'])): ?>
-                        <button type="button" class="doctor-vitals-history" data-bs-toggle="modal" data-bs-target="#healthTrendsModal" data-patient-id="<?= (int) $appt['patient_id'] ?>" data-patient-name="<?= htmlspecialchars($appt['patient_name'], ENT_QUOTES, 'UTF-8') ?>"><i class="bi bi-graph-up"></i> History</button>
-                      <?php endif; ?>
-                    </td>
-                    <td>
-                      <?= date("M j, Y", strtotime($appt['appointment_date'])) ?>
-                      <div class="text-muted small"><?= date("H:i", strtotime($appt['appointment_time'])) ?></div>
-                    </td>
-                    <td>
-                      <form method="POST" class="d-inline">
-                        <input type="hidden" name="doctor_csrf" value="<?= htmlspecialchars($_SESSION['doctor_csrf'], ENT_QUOTES, 'UTF-8') ?>">
-                        <input type="hidden" name="update_status" value="1">
-                        <input type="hidden" name="appointment_id" value="<?= $appt['id'] ?>">
-                        <select name="status" class="form-select status-dropdown" onchange="this.form.submit()">
-                          <option value="pending" <?= $appt['status'] === 'pending' ? 'selected' : '' ?>>Pending</option>
-                          <option value="completed" <?= $appt['status'] === 'completed' ? 'selected' : '' ?>>Completed</option>
-                          <option value="cancelled" <?= $appt['status'] === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
-                        </select>
-                      </form>
-                    </td>
-                    <td>
-                      <form method="POST">
-                        <input type="hidden" name="doctor_csrf" value="<?= htmlspecialchars($_SESSION['doctor_csrf'], ENT_QUOTES, 'UTF-8') ?>">
-                        <input type="hidden" name="update_status" value="1">
-                        <input type="hidden" name="appointment_id" value="<?= $appt['id'] ?>">
-                        <div class="input-group">
-                          <input type="text" name="notes" class="form-control form-control-sm" value="<?= htmlspecialchars($appt['notes'] ?? '') ?>" placeholder="Notes">
-                          <button type="submit" class="btn btn-sm btn-outline-secondary">
-                            <i class="bi bi-save"></i>
-                          </button>
-                        </div>
-                      </form>
-                    </td>
-                    <td>
-                      <?php if (!empty($prescriptionsByAppointment[$appt['id']])): ?>
-                        <div class="prescription-list">
-                          <?php foreach ($prescriptionsByAppointment[$appt['id']] as $prescription): ?>
-                            <div class="prescription-card p-2 mb-2 bg-light small">
-                              <div><?= nl2br(htmlspecialchars($prescription['prescription'])) ?></div>
-                              <?php if (!empty($prescription['medication'])): ?>
-                                <div class="text-muted mt-1">Medication: <?= htmlspecialchars($prescription['medication']) ?></div>
-                              <?php endif; ?>
-                              <form method="POST" class="mt-2" onsubmit="return confirm('Delete this prescription?');">
-                                <input type="hidden" name="doctor_csrf" value="<?= htmlspecialchars($_SESSION['doctor_csrf'], ENT_QUOTES, 'UTF-8') ?>">
-                                <input type="hidden" name="delete_prescription" value="1">
-                                <input type="hidden" name="prescription_id" value="<?= (int) $prescription['id'] ?>">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                  <i class="bi bi-trash"></i> Delete
-                                </button>
-                              </form>
+                      <div class="doctor-appointment-detail-grid">
+                        <section class="doctor-appointment-detail-card">
+                          <h4>Latest vitals</h4>
+                          <div class="doctor-vitals-summary">
+                            <span><small>HR</small><strong><?= $appt['latest_heart_rate'] !== null ? htmlspecialchars((string) $appt['latest_heart_rate']) . ' bpm' : '&mdash;' ?></strong></span>
+                            <span><small>SpO<sub>2</sub></small><strong><?= $appt['latest_spo2'] !== null ? htmlspecialchars((string) $appt['latest_spo2']) . '%' : '&mdash;' ?></strong></span>
+                            <span><small>Temp</small><strong><?= $appt['latest_temperature'] !== null ? htmlspecialchars((string) $appt['latest_temperature']) . '&deg;C' : '&mdash;' ?></strong></span>
+                            <span><small>BP</small><strong><?= $appt['latest_blood_pressure_sys'] !== null && $appt['latest_blood_pressure_dia'] !== null ? htmlspecialchars((string) $appt['latest_blood_pressure_sys']) . '/' . htmlspecialchars((string) $appt['latest_blood_pressure_dia']) : '&mdash;' ?></strong></span>
+                          </div>
+                          <?php if ($appt['vitals_recorded_at']): ?><small class="doctor-vitals-updated">Recorded <?= htmlspecialchars(date('M j, Y H:i', strtotime($appt['vitals_recorded_at']))) ?></small><?php endif; ?>
+                          <?php if (!empty($authorizedPatient['health_history'])): ?>
+                            <button type="button" class="doctor-vitals-history" data-patient-trends-toggle data-patient-id="<?= (int) $appt['patient_id'] ?>" aria-expanded="false" aria-controls="queue-trends-<?= (int) $appt['patient_id'] ?>"><i class="bi bi-graph-up" aria-hidden="true"></i> History</button>
+                          <?php endif; ?>
+                        </section>
+                        <section class="doctor-appointment-detail-card">
+                          <h4>Appointment status</h4>
+                          <form method="POST" class="doctor-appointment-status-form">
+                            <input type="hidden" name="doctor_csrf" value="<?= htmlspecialchars($_SESSION['doctor_csrf'], ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="update_status" value="1">
+                            <input type="hidden" name="appointment_id" value="<?= (int) $appt['id'] ?>">
+                            <input type="hidden" name="notes" value="<?= htmlspecialchars($appt['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                            <label class="visually-hidden" for="appointment-status-<?= (int) $appt['id'] ?>">Status</label>
+                            <select id="appointment-status-<?= (int) $appt['id'] ?>" name="status" class="form-select status-dropdown" onchange="this.form.submit()">
+                              <option value="pending" <?= $appt['status'] === 'pending' ? 'selected' : '' ?>>Pending</option>
+                              <option value="completed" <?= $appt['status'] === 'completed' ? 'selected' : '' ?>>Completed</option>
+                              <option value="cancelled" <?= $appt['status'] === 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
+                            </select>
+                          </form>
+                        </section>
+                        <section class="doctor-appointment-detail-card doctor-appointment-notes-card">
+                          <h4>Visit notes</h4>
+                          <form method="POST" class="doctor-appointment-notes-form">
+                            <input type="hidden" name="doctor_csrf" value="<?= htmlspecialchars($_SESSION['doctor_csrf'], ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="update_notes" value="1">
+                            <input type="hidden" name="appointment_id" value="<?= (int) $appt['id'] ?>">
+                            <label class="visually-hidden" for="appointment-notes-<?= (int) $appt['id'] ?>">Visit notes for <?= htmlspecialchars($patientGroup['patient_name'], ENT_QUOTES, 'UTF-8') ?></label>
+                            <div class="input-group">
+                              <input id="appointment-notes-<?= (int) $appt['id'] ?>" type="text" name="notes" class="form-control" value="<?= htmlspecialchars($appt['notes'] ?? '', ENT_QUOTES, 'UTF-8') ?>" maxlength="3000" placeholder="Add visit notes">
+                              <button type="submit" class="btn btn-outline-secondary" aria-label="Save visit notes"><i class="bi bi-save" aria-hidden="true"></i></button>
                             </div>
-                          <?php endforeach; ?>
-                        </div>
-                      <?php else: ?>
-                        <span class="text-muted small">None</span>
-                      <?php endif; ?>
-                    </td>
-                    <td>
-                      <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
-                              data-bs-target="#addPrescriptionModal" 
-                              data-patient-id="<?= $appt['patient_id'] ?>"
-                              data-patient-name="<?= htmlspecialchars($appt['patient_name']) ?>"
-                              data-appointment-id="<?= $appt['id'] ?>">
-                        <i class="bi bi-prescription"></i> Add Rx
-                      </button>
-                      <button type="button" class="btn btn-sm btn-outline-success mt-1" data-bs-toggle="modal"
-                              data-bs-target="#addSuggestionModal"
-                              data-patient-id="<?= (int) $appt['patient_id'] ?>"
-                              data-patient-name="<?= htmlspecialchars($appt['patient_name'], ENT_QUOTES, 'UTF-8') ?>"
-                              data-appointment-id="<?= (int) $appt['id'] ?>">
-                        <i class="bi bi-chat-square-text"></i> Add suggestion
-                      </button>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
+                          </form>
+                        </section>
+                        <section class="doctor-appointment-detail-card doctor-appointment-prescription-card">
+                          <h4>Prescriptions</h4>
+                          <?php if (!empty($prescriptionsByAppointment[$appt['id']])): ?>
+                            <div class="prescription-list doctor-appointment-prescriptions">
+                              <?php foreach ($prescriptionsByAppointment[$appt['id']] as $prescription): ?>
+                                <div class="prescription-card p-2 mb-2 small">
+                                  <div><?= nl2br(htmlspecialchars($prescription['prescription'], ENT_QUOTES, 'UTF-8')) ?></div>
+                                  <?php if (!empty($prescription['medication'])): ?><div class="doctor-prescription-medication">Medication: <?= htmlspecialchars($prescription['medication'], ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
+                                  <form method="POST" class="mt-2" onsubmit="return confirm('Delete this prescription?');">
+                                    <input type="hidden" name="doctor_csrf" value="<?= htmlspecialchars($_SESSION['doctor_csrf'], ENT_QUOTES, 'UTF-8') ?>">
+                                    <input type="hidden" name="delete_prescription" value="1">
+                                    <input type="hidden" name="prescription_id" value="<?= (int) $prescription['id'] ?>">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash" aria-hidden="true"></i> Delete</button>
+                                  </form>
+                                </div>
+                              <?php endforeach; ?>
+                            </div>
+                          <?php else: ?><p class="doctor-appointment-empty">No prescriptions for this appointment.</p><?php endif; ?>
+                        </section>
+                      </div>
+                      <div class="doctor-appointment-actions">
+                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addPrescriptionModal" data-patient-id="<?= (int) $appt['patient_id'] ?>" data-patient-name="<?= htmlspecialchars($patientGroup['patient_name'], ENT_QUOTES, 'UTF-8') ?>" data-appointment-id="<?= (int) $appt['id'] ?>"><i class="bi bi-prescription" aria-hidden="true"></i> Add prescription</button>
+                        <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#addSuggestionModal" data-patient-id="<?= (int) $appt['patient_id'] ?>" data-patient-name="<?= htmlspecialchars($patientGroup['patient_name'], ENT_QUOTES, 'UTF-8') ?>" data-appointment-id="<?= (int) $appt['id'] ?>"><i class="bi bi-chat-square-text" aria-hidden="true"></i> Add suggestion</button>
+                      </div>
+                    </article>
+                  <?php endforeach; ?>
+                </div>
+              </details>
+            <?php endforeach; ?>
           </div>
         <?php endif; ?>
       </div>
-    </div>
-      </div>
-    </div>
+      </section>
+    </main>
   </div>
 
   <!-- View Profile Modal -->
@@ -1095,7 +974,57 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
       });
     });
 
-    // Health Trends Modal Handler
+    const doctorPatientRecords = <?= json_encode($patients, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE) ?>;
+
+    function setPatientTrendControls(patientId, expanded) {
+      document.querySelectorAll('[data-patient-trends-toggle]').forEach((control) => {
+        if (Number(control.dataset.patientId) !== patientId) return;
+        control.setAttribute('aria-expanded', String(expanded));
+        control.innerHTML = expanded
+          ? '<i class="bi bi-graph-up" aria-hidden="true"></i> Hide trends'
+          : '<i class="bi bi-graph-up" aria-hidden="true"></i> Trends';
+      });
+    }
+
+    // Expand a patient's trends in the dashboard table instead of opening a popup.
+    document.querySelectorAll('[data-patient-trends-toggle]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const patientId = Number(button.dataset.patientId);
+        const detailsRow = document.getElementById(button.getAttribute('aria-controls'));
+        if (!detailsRow) return;
+        const opening = detailsRow.hidden;
+        detailsRow.hidden = !opening;
+        setPatientTrendControls(patientId, opening);
+        if (!opening) return;
+
+        const patient = doctorPatientRecords.find((record) => Number(record.id) === patientId);
+        if (!patient || !Array.isArray(patient.health_history) || patient.health_history.length === 0) return;
+        const daily = {};
+        patient.health_history.forEach((entry) => {
+          const date = String(entry.recorded_at || '').slice(0, 10);
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+          if (!daily[date]) daily[date] = { heart_rate: [], spo2: [], temperature: [], blood_pressure_sys: [], blood_pressure_dia: [] };
+          Object.keys(daily[date]).forEach((metric) => {
+            if (entry[metric] === null || entry[metric] === '') return;
+            const value = Number(entry[metric]);
+            if (Number.isFinite(value)) daily[date][metric].push(value);
+          });
+        });
+        const dates = Object.keys(daily).sort();
+        const labels = dates.map((date) => new Date(date + 'T00:00:00').toLocaleDateString());
+        const averages = (metric) => dates.map((date) => {
+          const values = daily[date][metric];
+          return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+        });
+        createChart('queue-heart-' + patientId, 'Heart rate (BPM)', labels, averages('heart_rate'), '#43d6a0');
+        createChart('queue-spo2-' + patientId, 'SpO₂ (%)', labels, averages('spo2'), '#35a8df');
+        createChart('queue-temp-' + patientId, 'Temperature (°C)', labels, averages('temperature'), '#f1c84a');
+        createBPChart('queue-bp-' + patientId, labels, averages('blood_pressure_sys'), averages('blood_pressure_dia'));
+        detailsRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    });
+
+    // Health Trends Modal Handler (used by the existing patient and appointment views)
     document.getElementById('healthTrendsModal').addEventListener('show.bs.modal', function(event) {
       const button = event.relatedTarget;
       const patientId = button.getAttribute('data-patient-id');
@@ -1104,8 +1033,7 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
       document.getElementById('trendPatientName').textContent = patientName;
       
       // Find the patient data
-      const patients = <?= json_encode($patients, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE) ?>;
-      const patient = patients.find(p => parseInt(p.id) === parseInt(patientId));
+      const patient = doctorPatientRecords.find(p => parseInt(p.id) === parseInt(patientId));
       
       if (!patient || !patient.health_history || patient.health_history.length === 0) {
         document.getElementById('noDataMessage').classList.remove('d-none');
@@ -1181,9 +1109,9 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
 
     function createBPChart(canvasId, labels, sysData, diaData) {
       const ctx = document.getElementById(canvasId).getContext('2d');
-      if (window.bpChart) window.bpChart.destroy();
+      if (window[canvasId + 'Chart']) window[canvasId + 'Chart'].destroy();
       
-      window.bpChart = new Chart(ctx, {
+      window[canvasId + 'Chart'] = new Chart(ctx, {
         type: 'line',
         data: {
           labels: labels,
@@ -1282,6 +1210,11 @@ foreach (['heart_rate', 'blood_pressure_sys', 'spo2'] as $metric) {
         const matchesStatus = filter === 'all' || row.dataset.queueStatus === filter;
         const matchesName = !query || row.dataset.patientName.toLocaleLowerCase().includes(query);
         row.hidden = !(matchesStatus && matchesName);
+        if (row.hidden) {
+          const detailsRow = document.getElementById('queue-trends-' + row.dataset.patientId);
+          if (detailsRow) detailsRow.hidden = true;
+          setPatientTrendControls(Number(row.dataset.patientId), false);
+        }
       });
     }
     if (patientSearch) patientSearch.addEventListener('input', applyQueueFilters);
