@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/session.php';
-if (!isset($_SESSION['patient_id'])) {
+if (!medconnect_role_authenticated('patient')) {
     header('Location: patient-login.html');
     exit();
 }
@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  VALUES (:patient_id, :heart_rate, :spo2, :temperature, :blood_pressure_sys, :blood_pressure_dia)'
             );
             $stmt->execute([
-                ':patient_id' => $_SESSION['patient_id'],
+                ':patient_id' => $_SESSION['auth']['patient']['id'],
                 ':heart_rate' => $values['heart_rate'],
                 ':spo2' => $values['spo2'],
                 ':temperature' => $values['temperature'],
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     WHERE patient_id = :patient_id AND target_name = :target_name AND actual_value IS NULL
                       AND target_timestamp <= NOW() AND target_timestamp >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
                 foreach ($values as $target => $actualValue) {
-                    $reconcile->execute([':actual_value' => $actualValue, ':patient_id' => $_SESSION['patient_id'], ':target_name' => $target]);
+                    $reconcile->execute([':actual_value' => $actualValue, ':patient_id' => $_SESSION['auth']['patient']['id'], ':target_name' => $target]);
                 }
             } catch (PDOException $ignored) {
                 // Prediction reconciliation is optional; preserve actual reading ingestion on failure.
@@ -75,11 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Actual measurement is committed first. Predictions are database-backed
             // and best-effort; an unavailable model never undoes the reading.
             try {
-                $predictionResponse = request_patient_predictions((int) $_SESSION['patient_id']);
+                $predictionResponse = request_patient_predictions((int) $_SESSION['auth']['patient']['id']);
                 if ($predictionResponse['ok']) {
                     store_patient_predictions(
                         $conn,
-                        (int) $_SESSION['patient_id'],
+                        (int) $_SESSION['auth']['patient']['id'],
                         $predictionResponse['data']
                     );
                 }

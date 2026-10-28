@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/session.php';
-if (!isset($_SESSION['patient_id'])) {
+if (!medconnect_role_authenticated('patient')) {
     header('Location: patient-login.html');
     exit();
 }
@@ -9,11 +9,11 @@ require_once __DIR__ . '/includes/db_connection.php';
 
 try {
     $patientStmt = $conn->prepare('SELECT fullname FROM patients WHERE id = :patient_id');
-    $patientStmt->execute([':patient_id' => $_SESSION['patient_id']]);
+    $patientStmt->execute([':patient_id' => $_SESSION['auth']['patient']['id']]);
     $patient = $patientStmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$patient) {
-        unset($_SESSION['patient_id'], $_SESSION['patient_name'], $_SESSION['patient_csrf']);
+        medconnect_clear_role_auth('patient');
         header('Location: patient-login.html?error=patient_not_found');
         exit();
     }
@@ -25,7 +25,7 @@ try {
          ORDER BY recorded_at DESC, id DESC
          LIMIT 10'
     );
-    $historyStmt->execute([':patient_id' => $_SESSION['patient_id']]);
+    $historyStmt->execute([':patient_id' => $_SESSION['auth']['patient']['id']]);
     $history = $historyStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $exception) {
     error_log('MedConnect patient analytics query failed: ' . $exception->getMessage());

@@ -36,12 +36,7 @@ if (!is_array($body)) {
     exit();
 }
 $role = $body['role'] ?? '';
-$patientSessionActive = !empty($_SESSION['patient_id']);
-$doctorSessionActive = !empty($_SESSION['doctor_id']);
-if (!in_array($role, ['patient', 'doctor'], true)
-    || ($patientSessionActive && $doctorSessionActive)
-    || ($role === 'patient' && (!$patientSessionActive || $doctorSessionActive))
-    || ($role === 'doctor' && (!$doctorSessionActive || $patientSessionActive))) {
+if (!in_array($role, ['patient', 'doctor'], true) || !medconnect_role_authenticated($role)) {
     http_response_code(401);
     echo json_encode(['error' => 'Please sign in to the correct workspace to use the health assistant.']);
     exit();
@@ -90,7 +85,7 @@ require_once __DIR__ . '/includes/assistant_response.php';
 
 if ($role === 'doctor') {
     $approvedDoctor = $conn->prepare("SELECT 1 FROM doctors WHERE id = :doctor_id AND verification_status = 'approved' LIMIT 1");
-    $approvedDoctor->execute([':doctor_id' => (int) $_SESSION['doctor_id']]);
+    $approvedDoctor->execute([':doctor_id' => (int) $_SESSION['auth']['doctor']['id']]);
     if (!$approvedDoctor->fetchColumn()) {
         http_response_code(403);
         echo json_encode(['error' => 'Doctor access is pending verification.']);
@@ -116,7 +111,7 @@ if (preg_match('/\b(appoin\w*|scheduled|booking|bookings)\b/i', $question)) {
              ORDER BY a.appointment_date DESC, a.appointment_time DESC
              LIMIT 20'
         );
-        $appointmentStmt->execute([':patient_id' => (int)$_SESSION['patient_id']]);
+        $appointmentStmt->execute([':patient_id' => (int)$_SESSION['auth']['patient']['id']]);
     } else {
         $appointmentStmt = $conn->prepare(
             'SELECT a.appointment_date, a.appointment_time, a.status, p.fullname AS patient_name
@@ -126,7 +121,7 @@ if (preg_match('/\b(appoin\w*|scheduled|booking|bookings)\b/i', $question)) {
              ORDER BY a.appointment_date DESC, a.appointment_time DESC
              LIMIT 20'
         );
-        $appointmentStmt->execute([':doctor_id' => (int)$_SESSION['doctor_id']]);
+        $appointmentStmt->execute([':doctor_id' => (int)$_SESSION['auth']['doctor']['id']]);
     }
     $appointments = $appointmentStmt->fetchAll(PDO::FETCH_ASSOC);
     if (!$appointments) {
@@ -159,7 +154,7 @@ if (preg_match('/\b(prescription|prescriptions|medication|medications|medicine)\
              ORDER BY pp.created_at DESC
              LIMIT 20'
         );
-        $prescriptionStmt->execute([':patient_id' => (int)$_SESSION['patient_id']]);
+        $prescriptionStmt->execute([':patient_id' => (int)$_SESSION['auth']['patient']['id']]);
     } else {
         $prescriptionStmt = $conn->prepare(
             'SELECT pp.medication, pp.dosage, pp.instructions, pp.prescription, pp.created_at, p.fullname AS patient_name
@@ -169,7 +164,7 @@ if (preg_match('/\b(prescription|prescriptions|medication|medications|medicine)\
              ORDER BY pp.created_at DESC
              LIMIT 20'
         );
-        $prescriptionStmt->execute([':doctor_id' => (int)$_SESSION['doctor_id']]);
+        $prescriptionStmt->execute([':doctor_id' => (int)$_SESSION['auth']['doctor']['id']]);
     }
     $prescriptions = $prescriptionStmt->fetchAll(PDO::FETCH_ASSOC);
     if (!$prescriptions) {
@@ -256,15 +251,15 @@ $measurementIntent = preg_match('/\b(latest|last|recent|recorded|reading|measure
 if (preg_match("/{$measurementTerms}/i", $question) && $measurementIntent) {
     $targetId = null;
     if ($role === 'patient') {
-        $targetId = (int)$_SESSION['patient_id'];
+        $targetId = (int)$_SESSION['auth']['patient']['id'];
     } else {
         $targetId = filter_var($body['patient_id'] ?? null, FILTER_VALIDATE_INT);
-        if (!$targetId || empty($_SESSION['doctor_id'])) {
+        if (!$targetId || empty($_SESSION['auth']['doctor']['id'])) {
             http_response_code(422);
             echo json_encode(['error' => 'Choose an assigned patient before asking about readings.']);
             exit();
         }
-        if (!medconnect_doctor_can_access_patient($conn, (int)$_SESSION['doctor_id'], $targetId)) {
+        if (!medconnect_doctor_can_access_patient($conn, (int)$_SESSION['auth']['doctor']['id'], $targetId)) {
             http_response_code(403);
             echo json_encode(['error' => 'You are not authorized to view that patient\'s readings.']);
             exit();
@@ -401,15 +396,15 @@ $isDataQuestion = preg_match('/\b(latest|recent|readings?|measurements?|vitals?|
 if ($isDataQuestion) {
     $targetId = null;
     if ($role === 'patient') {
-        $targetId = (int)$_SESSION['patient_id'];
+        $targetId = (int)$_SESSION['auth']['patient']['id'];
     } else {
         $targetId = filter_var($body['patient_id'] ?? null, FILTER_VALIDATE_INT);
-        if (!$targetId || empty($_SESSION['doctor_id'])) {
+        if (!$targetId || empty($_SESSION['auth']['doctor']['id'])) {
             http_response_code(422);
             echo json_encode(['error' => 'Choose an assigned patient before asking about readings.']);
             exit();
         }
-        if (!medconnect_doctor_can_access_patient($conn, (int)$_SESSION['doctor_id'], $targetId)) {
+        if (!medconnect_doctor_can_access_patient($conn, (int)$_SESSION['auth']['doctor']['id'], $targetId)) {
             http_response_code(403);
             echo json_encode(['error' => 'You are not authorized to view that patient\'s readings.']);
             exit();

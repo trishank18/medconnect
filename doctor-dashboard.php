@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/assistant_session.php';
-if (!isset($_SESSION['doctor_id'])) {
+if (!medconnect_role_authenticated('doctor')) {
     header("Location: doctor-login.html");
     exit();
 }
@@ -17,12 +17,12 @@ require_once __DIR__ . '/includes/db_connection.php';
 try {
     // Fetch doctor info
     $stmt = $conn->prepare("SELECT id, fullname, email, phone, department, username, verification_status, created_at FROM doctors WHERE id = :id");
-    $stmt->bindParam(':id', $_SESSION['doctor_id']);
+    $stmt->bindParam(':id', $_SESSION['auth']['doctor']['id']);
     $stmt->execute();
     $doctor = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$doctor) {
-        unset($_SESSION['doctor_id'], $_SESSION['doctor_name'], $_SESSION['doctor_csrf']);
+        medconnect_clear_role_auth('doctor');
         header("Location: doctor-login.html?error=not_found");
         exit();
     }
@@ -52,7 +52,7 @@ try {
                 exit();
             }
             $duplicateEmail = $conn->prepare('SELECT 1 FROM doctors WHERE email = :email AND id <> :id LIMIT 1');
-            $duplicateEmail->execute([':email' => $email, ':id' => (int) $_SESSION['doctor_id']]);
+            $duplicateEmail->execute([':email' => $email, ':id' => (int) $_SESSION['auth']['doctor']['id']]);
             if ($duplicateEmail->fetchColumn()) {
                 header('Location: doctor-dashboard.php?error=duplicate_email#updateProfileModal');
                 exit();
@@ -63,7 +63,7 @@ try {
             $updateStmt->bindParam(':email', $email);
             $updateStmt->bindParam(':phone', $phone);
             $updateStmt->bindParam(':department', $department);
-            $updateStmt->bindParam(':id', $_SESSION['doctor_id']);
+            $updateStmt->bindParam(':id', $_SESSION['auth']['doctor']['id']);
             $updateStmt->execute();
             
             header('Location: doctor-dashboard.php?profile_updated=1');
@@ -87,7 +87,7 @@ try {
             $authorizationStmt->execute([
               ':appointment_id' => $appointment_id,
               ':patient_id' => $patient_id,
-              ':doctor_id' => $_SESSION['doctor_id'],
+              ':doctor_id' => $_SESSION['auth']['doctor']['id'],
             ]);
             if (!$authorizationStmt->fetchColumn()) {
               header('Location: doctor-dashboard.php?error=unauthorized_patient');
@@ -96,7 +96,7 @@ try {
             $insertStmt = $conn->prepare("INSERT INTO patient_prescriptions 
                 (doctor_id, patient_id, appointment_id, prescription, medication, dosage, instructions) 
                 VALUES (:doctor_id, :patient_id, :appointment_id, :prescription, :medication, :dosage, :instructions)");
-            $insertStmt->bindParam(':doctor_id', $_SESSION['doctor_id']);
+            $insertStmt->bindParam(':doctor_id', $_SESSION['auth']['doctor']['id']);
             $insertStmt->bindParam(':patient_id', $patient_id);
             $insertStmt->bindParam(':appointment_id', $appointment_id);
             $insertStmt->bindParam(':prescription', $prescription);
@@ -125,7 +125,7 @@ try {
             $authorizationStmt->execute([
               ':appointment_id' => $appointmentId,
               ':patient_id' => $patientId,
-              ':doctor_id' => (int) $_SESSION['doctor_id'],
+              ':doctor_id' => (int) $_SESSION['auth']['doctor']['id'],
             ]);
             if (!$authorizationStmt->fetchColumn()) {
               header('Location: doctor-dashboard.php?error=unauthorized_patient#appointments-tab-pane');
@@ -134,7 +134,7 @@ try {
 
             $suggestionStmt = $conn->prepare('INSERT INTO patient_suggestions (doctor_id, patient_id, appointment_id, suggestion) VALUES (:doctor_id, :patient_id, :appointment_id, :suggestion)');
             $suggestionStmt->execute([
-              ':doctor_id' => (int) $_SESSION['doctor_id'],
+              ':doctor_id' => (int) $_SESSION['auth']['doctor']['id'],
               ':patient_id' => $patientId,
               ':appointment_id' => $appointmentId,
               ':suggestion' => $suggestion,
@@ -148,7 +148,7 @@ try {
               $deleteStmt = $conn->prepare("DELETE FROM patient_prescriptions WHERE id = :id AND doctor_id = :doctor_id");
               $deleteStmt->execute([
                 ':id' => $prescriptionId,
-                ':doctor_id' => $_SESSION['doctor_id']
+                ':doctor_id' => $_SESSION['auth']['doctor']['id']
               ]);
             }
         } elseif (isset($_POST['update_status'])) {
@@ -157,7 +157,7 @@ try {
             $notes = trim((string) ($_POST['notes'] ?? ''));
             if ($appointment_id && in_array($status, ['pending', 'completed', 'cancelled'], true) && strlen($notes) <= 3000) {
               $updateStmt = $conn->prepare("UPDATE appointments SET status = :status, notes = :notes WHERE id = :id AND doctor_id = :doctor_id");
-              $updateStmt->execute([':status' => $status, ':notes' => $notes, ':id' => $appointment_id, ':doctor_id' => $_SESSION['doctor_id']]);
+              $updateStmt->execute([':status' => $status, ':notes' => $notes, ':id' => $appointment_id, ':doctor_id' => $_SESSION['auth']['doctor']['id']]);
             }
         }
     }
@@ -172,8 +172,8 @@ try {
         ))");
     $stmt->execute([
       ':access_granted' => $canAccessAppointments ? 1 : 0,
-      ':assigned_doctor_id' => (int) $_SESSION['doctor_id'],
-      ':appointment_doctor_id' => (int) $_SESSION['doctor_id'],
+      ':assigned_doctor_id' => (int) $_SESSION['auth']['doctor']['id'],
+      ':appointment_doctor_id' => (int) $_SESSION['auth']['doctor']['id'],
     ]);
     $patientCount = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
@@ -198,8 +198,8 @@ try {
         ORDER BY p.fullname
     ");
     $stmt->execute([
-      ':assigned_doctor_id' => (int) $_SESSION['doctor_id'],
-      ':appointment_doctor_id' => (int) $_SESSION['doctor_id'],
+      ':assigned_doctor_id' => (int) $_SESSION['auth']['doctor']['id'],
+      ':appointment_doctor_id' => (int) $_SESSION['auth']['doctor']['id'],
       ':access_granted' => $canAccessAppointments ? 1 : 0,
     ]);
     $patients = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -253,7 +253,7 @@ try {
           AND :access_granted = 1
         ORDER BY a.appointment_date DESC, a.appointment_time DESC
     ");
-    $stmt->bindParam(':doc_id', $_SESSION['doctor_id']);
+    $stmt->bindParam(':doc_id', $_SESSION['auth']['doctor']['id']);
     $stmt->bindValue(':access_granted', $canAccessAppointments ? 1 : 0, PDO::PARAM_INT);
     $stmt->execute();
     $appointments = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -270,8 +270,8 @@ try {
             ))
         )");
     $readingsStmt->execute([
-      ':assigned_doctor_id' => (int) $_SESSION['doctor_id'],
-      ':appointment_doctor_id' => (int) $_SESSION['doctor_id'],
+      ':assigned_doctor_id' => (int) $_SESSION['auth']['doctor']['id'],
+      ':appointment_doctor_id' => (int) $_SESSION['auth']['doctor']['id'],
       ':access_granted' => $canAccessAppointments ? 1 : 0,
     ]);
     $readingsReceived = (int) $readingsStmt->fetchColumn();
@@ -280,7 +280,7 @@ try {
       FROM patient_prescriptions
       WHERE doctor_id = :doc_id
       ORDER BY created_at DESC");
-    $prescriptionStmt->bindParam(':doc_id', $_SESSION['doctor_id']);
+    $prescriptionStmt->bindParam(':doc_id', $_SESSION['auth']['doctor']['id']);
     $prescriptionStmt->execute();
     $prescriptionsByAppointment = [];
     foreach ($prescriptionStmt->fetchAll(PDO::FETCH_ASSOC) as $prescription) {

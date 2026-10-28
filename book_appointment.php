@@ -2,7 +2,7 @@
 require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/db_connection.php';
 
-if (!isset($_SESSION['patient_id'])) {
+if (!medconnect_role_authenticated('patient')) {
     header("Location: patient-login.html");
     exit();
 }
@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         http_response_code(403);
         exit('Invalid request token. Reload the page and try again.');
     }
-    $patient_id = $_SESSION['patient_id'];
+    $patient_id = $_SESSION['auth']['patient']['id'];
     $doctor_id = filter_input(INPUT_POST, 'doctor_id', FILTER_VALIDATE_INT);
     $date = $_POST['appointment_date'] ?? '';
     $time = $_POST['appointment_time'] ?? '';

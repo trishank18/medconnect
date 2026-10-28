@@ -2,7 +2,7 @@
 require_once __DIR__ . '/includes/session.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
-if (!isset($_SESSION['doctor_id'])) {
+if (!medconnect_role_authenticated('doctor')) {
     http_response_code(401);
     echo json_encode(['success' => false, 'error' => 'Unauthorized']);
     exit();
@@ -30,7 +30,7 @@ try {
           ))
         LIMIT 1
     ");
-    $stmt->execute([':doctor_id' => (int) $_SESSION['doctor_id'], ':patient_id' => $patientId]);
+    $stmt->execute([':doctor_id' => (int) $_SESSION['auth']['doctor']['id'], ':patient_id' => $patientId]);
     
     if (!$stmt->fetchColumn()) {
         http_response_code(403);

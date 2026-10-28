@@ -68,6 +68,16 @@ does not add fake features or data.
 The complete component, data-flow, database, RAG, and connection diagrams are
 in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
+Operational audit and setup references:
+
+- [Project audit and current status](./docs/PROJECT_AUDIT.md)
+- [File move/change map](./docs/FILE_MIGRATION_MAP.md)
+- [Database setup and migration safety](./docs/DATABASE_SETUP.md)
+- [PHP and Python API contracts](./docs/API_DOCUMENTATION.md)
+- [Connection and reference audit](./docs/CONNECTION_AUDIT.md)
+- [Executed test report and blockers](./docs/TEST_REPORT.md)
+- [Troubleshooting](./docs/TROUBLESHOOTING.md)
+
 The browser communicates with the PHP application, not directly with Gemini or the RAG service:
 
 ```text
@@ -162,6 +172,19 @@ python-rag/data/chunks.json
 - Optional ESP32 and supported sensors
 
 ## Local setup
+
+Run the repository's non-destructive static verifier from PowerShell after
+setup or when changing routes/includes:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-project.ps1
+```
+
+Add `-RunPythonTests` to run the existing ML and RAG pytest suites, or
+`-CheckLocalServices` to probe the loopback ML and RAG health endpoints. The
+verifier does not read or print `.env` values and does not perform database
+writes. Apache denies direct HTTP access to `config/`, `includes/`, and the
+database SQL directory while PHP can still include those files internally.
 
 ### 1. Install the project
 
@@ -319,6 +342,7 @@ Useful pages:
 - `patient-dashboard.php`: patient workspace and assistant
 - `doctor-dashboard.php`: doctor workspace and assistant
 - `patient-prediction.php`: AI Analytics
+- `hash.html`: browser-only SHA-2 text hash utility (not for passwords or sensitive health data)
 - `forgot-password.php`: SMS password recovery
 
 ## Assistant examples
@@ -393,11 +417,22 @@ medconnect/
 |-- database/                  New-install SQL and historical migrations (web access denied)
 |   |-- migrations/             Explicit schema changes for older installations
 |   `-- setup.sql               Initial schema plus local-only demo accounts
+|-- admin/                     Administrator dashboard, login, and protected actions
+|   `-- actions/                Admin state-changing handlers; root URL shims retained
+|-- config/                     Server-only canonical PDO configuration (HTTP denied)
+|   `-- database.php            Single PDO constructor; legacy include shim retained
 |-- doctor/                    Doctor registration/login pages
-|-- docs/                      Architecture, setup, and device documentation (web access denied)
+|-- docs/                      Audit, setup, API, test, and device documentation (web access denied)
 |   |-- device/                 ESP32 example firmware
 |   |-- setup/                  Local XAMPP setup
-|   `-- project-organization-audit.md  Inventory, changes, and verification
+|   |-- PROJECT_AUDIT.md        Architecture summary, findings, and priorities
+|   |-- FILE_MIGRATION_MAP.md   Moves and route-compatibility decisions
+|   |-- DATABASE_SETUP.md       Existing schema and safe setup guidance
+|   |-- API_DOCUMENTATION.md    PHP, RAG, ML, and device contracts
+|   |-- CONNECTION_AUDIT.md     Includes, routes, assets, DB and service connections
+|   |-- TEST_REPORT.md          Actual test results and blocked scenarios
+|   |-- TROUBLESHOOTING.md      XAMPP, DB, RAG, ML, and sensor checks
+|   `-- project-organization-audit.md  Detailed inventory, moves, and verification
 |-- exports/                   Legacy export folder (web access denied)
 |-- includes/                  Database, authentication, and SMS helpers
 |-- js/                        Dashboard and assistant JavaScript
@@ -419,6 +454,7 @@ medconnect/
 |-- patient-prediction.php     Patient analytics page
 |-- save_data.php              ESP32 data endpoint
 |-- run-rag.cmd                Windows RAG startup helper
+|-- scripts/verify-project.ps1 Static route/include/PHP/Python verifier
 |-- .env.example               Secret configuration template
 |-- README.md                  This guide
 `-- ARCHITECTURE.md            Detailed architecture, connections, and RAG flow

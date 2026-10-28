@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/session.php';
-if (!isset($_SESSION['patient_id'])) {
+if (!medconnect_role_authenticated('patient')) {
     http_response_code(401);
     exit('Unauthorized');
 }
@@ -22,7 +22,7 @@ $stmt = $conn->prepare(
 );
 $stmt->execute([
     ':id' => $prescriptionId,
-    ':patient_id' => $_SESSION['patient_id']
+    ':patient_id' => $_SESSION['auth']['patient']['id']
 ]);
 $prescription = $stmt->fetch(PDO::FETCH_ASSOC);
 

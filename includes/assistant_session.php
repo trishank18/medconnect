@@ -7,7 +7,7 @@ function medconnect_assistant_session_id(string $role): string
         throw new InvalidArgumentException('Unsupported assistant role.');
     }
 
-    $userId = filter_var($_SESSION[$role . '_id'] ?? null, FILTER_VALIDATE_INT);
+    $userId = filter_var($_SESSION['auth'][$role]['id'] ?? null, FILTER_VALIDATE_INT);
     if (!$userId || $userId < 1) {
         throw new RuntimeException('An authenticated account is required.');
     }

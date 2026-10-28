@@ -18,21 +18,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     try {
-        $stmt = $conn->prepare('SELECT id, fullname, password FROM patients WHERE username = :username LIMIT 1');
+        $stmt = $conn->prepare('SELECT id, fullname, username, password FROM patients WHERE username = :username LIMIT 1');
         $stmt->bindParam(':username', $username);
         $stmt->execute();
         
         if ($patient = $stmt->fetch(PDO::FETCH_ASSOC)) {
             
             if (password_verify($password, $patient['password'])) {
-                session_regenerate_id(true);
-                unset(
-                    $_SESSION['patient_id'], $_SESSION['patient_name'], $_SESSION['patient_csrf'],
-                    $_SESSION['doctor_id'], $_SESSION['doctor_name'], $_SESSION['doctor_csrf'],
-                    $_SESSION['admin_authenticated'], $_SESSION['admin_username'], $_SESSION['admin_csrf']
-                );
-                $_SESSION['patient_id'] = $patient['id'];
-                $_SESSION['patient_name'] = $patient['fullname'];
+                medconnect_login_role('patient', [
+                    'id' => (int) $patient['id'],
+                    'name' => $patient['fullname'],
+                    'username' => $patient['username'],
+                ]);
                 header("Location: ../patient-dashboard.php");
                 exit();
             } else {

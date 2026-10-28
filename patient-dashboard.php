@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/assistant_session.php';
-if (!isset($_SESSION['patient_id'])) {
+if (!medconnect_role_authenticated('patient')) {
     header("Location: patient-login.html");
     exit();
 }
@@ -18,12 +18,12 @@ require_once __DIR__ . '/includes/ml_client.php';
 try {
     // Fetch patient profile
     $stmt = $conn->prepare("SELECT id, fullname, email, phone, age, username, doctor_id, created_at FROM patients WHERE id = :id");
-    $stmt->bindParam(':id', $_SESSION['patient_id']);
+    $stmt->bindParam(':id', $_SESSION['auth']['patient']['id']);
     $stmt->execute();
     $patient = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$patient) {
-        unset($_SESSION['patient_id'], $_SESSION['patient_name'], $_SESSION['patient_csrf']);
+        medconnect_clear_role_auth('patient');
         header("Location: patient-login.html?error=patient_not_found");
         exit();
     }
@@ -42,7 +42,7 @@ try {
             exit();
         }
         $duplicateEmail = $conn->prepare('SELECT 1 FROM patients WHERE email = :email AND id <> :id LIMIT 1');
-        $duplicateEmail->execute([':email' => $email, ':id' => (int) $_SESSION['patient_id']]);
+        $duplicateEmail->execute([':email' => $email, ':id' => (int) $_SESSION['auth']['patient']['id']]);
         if ($duplicateEmail->fetchColumn()) {
             header('Location: patient-dashboard.php?error=duplicate_email#updateProfileModal');
             exit();
@@ -53,7 +53,7 @@ try {
         $updateStmt->bindParam(':email', $email);
         $updateStmt->bindParam(':phone', $phone);
         $updateStmt->bindParam(':age', $age);
-        $updateStmt->bindParam(':id', $_SESSION['patient_id']);
+        $updateStmt->bindParam(':id', $_SESSION['auth']['patient']['id']);
         $updateStmt->execute();
 
         header('Location: patient-dashboard.php?profile_updated=1');
@@ -65,7 +65,7 @@ try {
             $cancelStmt = $conn->prepare("UPDATE appointments SET status = 'cancelled' WHERE id = :id AND patient_id = :patient_id AND status = 'pending'");
             $cancelStmt->execute([
                 ':id' => $appointmentId,
-                ':patient_id' => $_SESSION['patient_id']
+                ':patient_id' => $_SESSION['auth']['patient']['id']
             ]);
         }
 
@@ -81,7 +81,7 @@ try {
         ORDER BY recorded_at DESC, id DESC
         LIMIT 1
     ");
-    $stmt->bindParam(':patient_id', $_SESSION['patient_id']);
+    $stmt->bindParam(':patient_id', $_SESSION['auth']['patient']['id']);
     $stmt->execute();
     $metrics = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -97,17 +97,17 @@ try {
         WHERE patient_id = :patient_id
         ORDER BY recorded_at DESC, id DESC
     ");
-    $history_stmt->bindParam(':patient_id', $_SESSION['patient_id']);
+    $history_stmt->bindParam(':patient_id', $_SESSION['auth']['patient']['id']);
     $history_stmt->execute();
     $metrics_history = $history_stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $mlPredictionError = null;
     try {
-        $predictionResponse = request_patient_predictions((int) $_SESSION['patient_id']);
+        $predictionResponse = request_patient_predictions((int) $_SESSION['auth']['patient']['id']);
         if ($predictionResponse['ok']) {
             store_patient_predictions(
                 $conn,
-                (int) $_SESSION['patient_id'],
+                (int) $_SESSION['auth']['patient']['id'],
                 $predictionResponse['data']
             );
         } else {
@@ -121,7 +121,7 @@ try {
     try {
         $predictionStmt = $conn->prepare("SELECT target_name, predicted_value, actual_value, model_version, prediction_timestamp, target_timestamp
             FROM ml_predictions WHERE patient_id = :patient_id ORDER BY prediction_timestamp DESC LIMIT 10");
-        $predictionStmt->execute([':patient_id' => $_SESSION['patient_id']]);
+        $predictionStmt->execute([':patient_id' => $_SESSION['auth']['patient']['id']]);
         $mlPredictions = $predictionStmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $ignored) {
         // Keep the core dashboard usable until the optional predictions migration is applied.
@@ -162,7 +162,7 @@ try {
         WHERE a.patient_id = :patient_id 
         ORDER BY a.appointment_date DESC, a.appointment_time DESC
     ");
-    $appt_stmt->bindParam(':patient_id', $_SESSION['patient_id']);
+    $appt_stmt->bindParam(':patient_id', $_SESSION['auth']['patient']['id']);
     $appt_stmt->execute();
     $appointments = $appt_stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -174,7 +174,7 @@ try {
         WHERE pp.patient_id = :patient_id
         ORDER BY pp.created_at DESC
     ");
-    $presc_stmt->bindParam(':patient_id', $_SESSION['patient_id']);
+    $presc_stmt->bindParam(':patient_id', $_SESSION['auth']['patient']['id']);
     $presc_stmt->execute();
     $prescriptions = $presc_stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -187,7 +187,7 @@ try {
         WHERE ps.patient_id = :patient_id
         ORDER BY ps.created_at DESC, ps.id DESC
         LIMIT 50");
-    $suggestionStmt->execute([':patient_id' => (int) $_SESSION['patient_id']]);
+    $suggestionStmt->execute([':patient_id' => (int) $_SESSION['auth']['patient']['id']]);
     $doctorSuggestions = $suggestionStmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {

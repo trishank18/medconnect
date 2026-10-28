@@ -2,7 +2,7 @@
 require_once __DIR__ . '/includes/session.php';
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['patient_id'])) {
+if (!medconnect_role_authenticated('patient')) {
     http_response_code(401);
     echo json_encode(['success' => false, 'error' => 'Unauthorized']);
     exit();
@@ -18,7 +18,7 @@ try {
          ORDER BY recorded_at DESC, id DESC
          LIMIT 100'
     );
-    $stmt->bindValue(':patient_id', $_SESSION['patient_id'], PDO::PARAM_INT);
+    $stmt->bindValue(':patient_id', $_SESSION['auth']['patient']['id'], PDO::PARAM_INT);
     $stmt->execute();
     $records = array_reverse($stmt->fetchAll(PDO::FETCH_ASSOC));
 

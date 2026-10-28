@@ -17,7 +17,7 @@ function ensure_admin_credentials_table(PDO $conn): void
 function get_admin_credentials(PDO $conn): array
 {
     ensure_admin_credentials_table($conn);
-    $stmt = $conn->query('SELECT username, password_hash FROM admin_credentials WHERE id = 1');
+    $stmt = $conn->query('SELECT id, username, password_hash FROM admin_credentials WHERE id = 1');
     $credentials = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($credentials) {
@@ -33,7 +33,7 @@ function get_admin_credentials(PDO $conn): array
         && strlen($passwordHash) <= 255
         && ($hashInfo['algoName'] ?? 'unknown') !== 'unknown') {
         save_admin_credentials($conn, $username, $passwordHash);
-        return ['username' => $username, 'password_hash' => $passwordHash];
+        return ['id' => 1, 'username' => $username, 'password_hash' => $passwordHash];
     }
 
     return ['username' => '', 'password_hash' => ''];

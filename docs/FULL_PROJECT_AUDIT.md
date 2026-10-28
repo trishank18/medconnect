@@ -196,3 +196,15 @@ Open `http://localhost/medconnect/`. Health checks are `http://127.0.0.1:8000/he
 - `admin-login.html` and `admin-reset.php` now share the dashboard's dark background, green accent, card borders, typography, form fields, and responsive layout through `css/admin-auth.css`.
 - Added explicit form labels, dark success/error feedback, and accessible show/hide password controls in `js/admin-auth.js`. Login action, reset handler, CSRF flows, field names, password verification/hashing, and server validation remain unchanged.
 - Verification: `admin-reset.php` PHP lint passed; `js/admin-auth.js` passed `node --check`; Apache returned 200 for the admin login HTML, auth stylesheet, and auth JavaScript. The `admin_login` CSRF endpoint returned a token of the expected shape; its value was withheld. `git diff --check` passed with only Windows line-ending notices. Login/reset were not submitted and no authenticated visual browser test was performed.
+
+## Connection and layout update — 2026-10-27
+
+The later connection/layout pass supersedes earlier statements about the current
+admin implementation paths and PDO constructor location. Implementations now
+live in `admin/dashboard.php`, `admin/login.php`, and `admin/actions/`; the old
+root admin URLs are small compatibility shims. `config/database.php` is the
+only PHP PDO constructor, and `includes/db_connection.php` now forwards to it.
+The compatibility routes continue to load the shared helpers while Apache
+returns 403 for direct requests to internal `admin/`, `config/`, and `includes/`
+files. Current evidence is recorded in `docs/CONNECTION_AUDIT.md` and
+`docs/TEST_REPORT.md`.

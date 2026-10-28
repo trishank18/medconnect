@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en" class="dark-theme">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Text Hash Generator | MedConnect</title>
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/app-ui.css">
+  <link rel="stylesheet" href="css/hash-tool.css">
+  <script src="js/theme-init.js"></script>
+  <script src="js/design-switch.js" defer></script>
+  <script src="js/text-hash.js" defer></script>
+</head>
+<body class="bg-light hash-page">
+  <main class="hash-shell">
+    <a class="hash-brand" href="index.html" aria-label="MedConnect home"><span aria-hidden="true">MC</span> MedConnect</a>
+    <section class="hash-card" aria-labelledby="page-title">
+      <p class="hash-eyebrow">Local utility</p>
+      <h1 id="page-title">Text hash generator</h1>
+      <p class="hash-intro">Create a SHA-2 digest from text in this browser. Your text is not sent to a server.</p>
+
+      <form id="hash-form">
+        <label for="hash-input">Text to hash</label>
+        <textarea id="hash-input" name="text" rows="7" maxlength="1000000" spellcheck="false" placeholder="Type or paste text here…"></textarea>
+
+        <div class="hash-controls">
+          <div class="hash-algorithm">
+            <label for="hash-algorithm">Algorithm</label>
+            <select id="hash-algorithm" name="algorithm">
+              <option value="SHA-256">SHA-256</option>
+              <option value="SHA-384">SHA-384</option>
+              <option value="SHA-512">SHA-512</option>
+            </select>
+          </div>
+          <div class="hash-buttons">
+            <button class="hash-button hash-button-secondary" id="clear-button" type="button">Clear</button>
+            <button class="hash-button hash-button-primary" type="submit">Generate hash</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="hash-result-wrap">
+        <div class="hash-result-heading">
+          <label for="hash-output">Digest</label>
+          <button class="hash-copy" id="copy-button" type="button" disabled>Copy</button>
+        </div>
+        <output id="hash-output" class="hash-output" aria-live="polite">Your hash will appear here.</output>
+      </div>
+      <p id="hash-status" class="hash-status" role="status" aria-live="polite"></p>
+      <p class="hash-note"><strong>Note:</strong> SHA-2 is a general-purpose digest, not password storage. Do not use this page to create password hashes or paste sensitive health information.</p>
+      <p class="hash-back"><a href="index.html">← Back to MedConnect</a></p>
+    </section>
+    <footer class="hash-footer">MedConnect · Text stays in your browser</footer>
+  </main>
+</body>
+</html>

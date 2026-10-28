@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/session.php';
-if (empty($_SESSION['admin_authenticated'])) {
+if (!medconnect_role_authenticated('admin')) {
     header('Location: admin-login.html');
     exit();
 }

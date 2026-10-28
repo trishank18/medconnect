@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/session.php';
-if (!isset($_SESSION['patient_id'])) {
+if (!medconnect_role_authenticated('patient')) {
     header("Location: patient-login.html");
     exit();
 }
@@ -11,12 +11,12 @@ require_once __DIR__ . '/includes/db_connection.php';
 // Fetch current patient data
 try {
     $stmt = $conn->prepare("SELECT id, fullname, email, phone, age, username, doctor_id, created_at FROM patients WHERE id = :id");
-    $stmt->bindParam(':id', $_SESSION['patient_id']);
+    $stmt->bindParam(':id', $_SESSION['auth']['patient']['id']);
     $stmt->execute();
     $patient = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$patient) {
-        unset($_SESSION['patient_id'], $_SESSION['patient_name'], $_SESSION['patient_csrf']);
+        medconnect_clear_role_auth('patient');
         header("Location: patient-login.html?error=patient_not_found");
         exit();
     }
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bindParam(':phone', $phone);
         $stmt->bindParam(':age', $age);
         $stmt->bindParam(':username', $username);
-        $stmt->bindParam(':id', $_SESSION['patient_id']);
+        $stmt->bindParam(':id', $_SESSION['auth']['patient']['id']);
         $stmt->execute();
         
         header("Location: patient-dashboard.php?update=success");
